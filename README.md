@@ -5,7 +5,7 @@ This module will allow you to load several maps on server side of you game and r
 
 ## Installation
 - Clone latest sources into **Source/RelatedWorld** directory of you project
-- Edit **{ProjectName}Editor.Target.cs** file in **Source** directory and add next code into *{ProjectName}EditorTarget* function
+- Edit **{ProjectName}{TargetType}.Target.cs** file in **Source** directory and add next code into *{ProjectName}EditorTarget* function
 ```c#
 ExtraModuleNames.AddRange(new string[] { "RelatedWorld" });
 ```
