@@ -29,7 +29,7 @@ NetDriverDefinitions=(DefName="GameNetDriver",DriverClassName="/Script/RelatedWo
 - Recompile you project
 
 ## Notes for public version
-- You need implement proper gamemode for Related worlds, witch not allowed spawn services actors like GameSession or Playerontrolles, becouse they already present on Persistent level
+- You need implement proper gamemode for Related worlds, witch not allowed spawn services actors like GameSession or PlayerController, becouse they already present on Persistent level
 - Good idea is a implement ReplicationGraph class for better actors replication from server side to a client side
 
 ## Simple Usage
