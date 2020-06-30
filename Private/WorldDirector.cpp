@@ -258,7 +258,7 @@ AActor* URelatedWorld::SpawnActor(UClass* Class, const FTransform& SpawnTransfor
 	return SpawnedActor;
 }
 
-URelatedWorld* UWorldDirector::LoadRelatedLevel(UObject* WorldContextObject, FName LevelName)
+URelatedWorld* UWorldDirector::LoadRelatedLevel(UObject* WorldContextObject, FName LevelName, bool IsNetWorld)
 {
 	UPackage* WorldPackage = nullptr;
 	UWorld* World = nullptr;
@@ -342,8 +342,11 @@ URelatedWorld* UWorldDirector::LoadRelatedLevel(UObject* WorldContextObject, FNa
 		Context.World()->InitWorld();
 	}
 
-	Context.ActiveNetDrivers = GEngine->GetWorldContextFromWorld(WorldContextObject->GetWorld())->ActiveNetDrivers;
-	Context.World()->NetDriver = WorldContextObject->GetWorld()->NetDriver;
+	if (IsNetWorld)
+	{
+		Context.ActiveNetDrivers = GEngine->GetWorldContextFromWorld(WorldContextObject->GetWorld())->ActiveNetDrivers;
+		Context.World()->NetDriver = WorldContextObject->GetWorld()->NetDriver;
+	}
 
 	Context.World()->SetGameMode(URL);
 

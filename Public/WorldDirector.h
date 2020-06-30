@@ -46,7 +46,7 @@ public:
 		}
 
 	UFUNCTION(BlueprintCallable, Category = "WorldDirector", Meta=(WorldContext="WorldContextObject"))
-		URelatedWorld* LoadRelatedLevel(UObject* WorldContextObject, FName LevelName);
+		URelatedWorld* LoadRelatedLevel(UObject* WorldContextObject, FName LevelName, bool IsNetWorld = true);
 
 	UFUNCTION(BlueprintCallable, Category = "WorldDirector")
 		void UnloadAllRelatedLevels();
