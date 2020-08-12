@@ -258,6 +258,18 @@ AActor* URelatedWorld::SpawnActor(UClass* Class, const FTransform& SpawnTransfor
 	return SpawnedActor;
 }
 
+bool URelatedWorld::MoveActorToWorld(AActor* InActor)
+{
+	if (!IsValid(InActor) || InActor->IsPendingKill())
+	{
+		return false;
+	}
+
+	UWorld* World = _Context->World();
+
+	return InActor->Rename(nullptr, World->PersistentLevel);
+}
+
 URelatedWorld* UWorldDirector::LoadRelatedLevel(UObject* WorldContextObject, FName LevelName, bool IsNetWorld)
 {
 	UPackage* WorldPackage = nullptr;

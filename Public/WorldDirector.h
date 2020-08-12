@@ -21,6 +21,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "WorldDirector")
 		AActor* SpawnActor(UClass* Class, const FTransform& SpawnTransform, ESpawnActorCollisionHandlingMethod CollisionHandlingOverride, AActor* Owner);
 
+	UFUNCTION(BlueprintCallable, Category = "WorldDirector")
+		bool MoveActorToWorld(AActor* InActor);
+
 	void Tick(float DeltaSeconds) override;
 	bool IsTickable() const override;
 	bool IsTickableInEditor() const override { return false; };
