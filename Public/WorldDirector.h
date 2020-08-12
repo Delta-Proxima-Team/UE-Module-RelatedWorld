@@ -15,6 +15,9 @@ class RELATEDWORLD_API URelatedWorld : public UObject, public FTickableGameObjec
 	GENERATED_BODY()
 
 public:
+	void SetNetworked(bool bNetworked) { bIsNetworkedWorld = bNetworked; }
+	void SetPersistentWorld(UWorld* World) { PersistentWorld = World; }
+
 	void SetContext(FWorldContext* Context) { _Context = Context; }
 	FWorldContext* Context() const { return _Context; }
 
@@ -23,6 +26,9 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "WorldDirector")
 		bool MoveActorToWorld(AActor* InActor);
+
+	UFUNCTION(BlueprintPure, Category = "WorldDirector")
+		bool IsNetworkedWorld() const { return bIsNetworkedWorld; }
 
 	void Tick(float DeltaSeconds) override;
 	bool IsTickable() const override;
@@ -33,6 +39,8 @@ public:
 
 private:
 	FWorldContext* _Context;
+	UWorld* PersistentWorld;
+	bool bIsNetworkedWorld;
 
 };
 

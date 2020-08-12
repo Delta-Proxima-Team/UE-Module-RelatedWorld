@@ -265,9 +265,30 @@ bool URelatedWorld::MoveActorToWorld(AActor* InActor)
 		return false;
 	}
 
-	UWorld* World = _Context->World();
+	UWorldDirector* Director = CastChecked<UWorldDirector>(GetOuter());
+	URelatedWorld* OldRWorld = Director->GetRelatedWorldFromActor(InActor);
 
-	return InActor->Rename(nullptr, World->PersistentLevel);
+	if (OldRWorld != nullptr)
+	{
+		if (!(bIsNetworkedWorld & OldRWorld->bIsNetworkedWorld))
+		{
+			if (OldRWorld->bIsNetworkedWorld)
+			{
+				if (PersistentWorld->NetDriver->ShouldClientDestroyActor(InActor))
+				{
+					PersistentWorld->NetDriver->NotifyActorDestroyed(InActor);
+				}
+				PersistentWorld->NetDriver->RemoveNetworkActor(InActor);
+			}
+
+			if (bIsNetworkedWorld)
+			{
+				PersistentWorld->NetDriver->AddNetworkActor(InActor);
+			}
+		}
+	}
+
+	return InActor->Rename(nullptr, _Context->World()->PersistentLevel);
 }
 
 URelatedWorld* UWorldDirector::LoadRelatedLevel(UObject* WorldContextObject, FName LevelName, bool IsNetWorld)
@@ -359,6 +380,11 @@ URelatedWorld* UWorldDirector::LoadRelatedLevel(UObject* WorldContextObject, FNa
 		Context.ActiveNetDrivers = GEngine->GetWorldContextFromWorld(WorldContextObject->GetWorld())->ActiveNetDrivers;
 		Context.World()->NetDriver = WorldContextObject->GetWorld()->NetDriver;
 	}
+	else
+	{
+		Context.ActiveNetDrivers.Empty();
+		Context.World()->NetDriver = nullptr;
+	}
 
 	Context.World()->SetGameMode(URL);
 
@@ -387,9 +413,11 @@ URelatedWorld* UWorldDirector::LoadRelatedLevel(UObject* WorldContextObject, FNa
 	Context.World()->bWorldWasLoadedThisTick = true;
 	Context.World()->SetShouldTick(false);
 
-	URelatedWorld* rWorld = NewObject<URelatedWorld>();
+	URelatedWorld* rWorld = NewObject<URelatedWorld>(this);
 	rWorld->AddToRoot();
 	rWorld->SetContext(&Context);
+	rWorld->SetNetworked(IsNetWorld);
+	rWorld->SetPersistentWorld(Context.OwningGameInstance->GetWorld());
 
 	Worlds.Add(LevelName, rWorld);
 
