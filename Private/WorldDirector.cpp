@@ -438,3 +438,15 @@ AActor* UWorldDirector::SpawnActor(URelatedWorld* TargetWorld, UClass* Class, co
 
 	return TargetWorld->SpawnActor(Class, SpawnTransform, CollisionHandlingOverride, Owner);
 }
+
+URelatedWorld* UWorldDirector::GetRelatedWorldFromActor(AActor* InActor) const
+{
+	if (InActor == nullptr || !IsValid(InActor))
+	{
+		return nullptr;
+	}
+
+	UWorld* ActorWorld = InActor->GetWorld();
+
+	return *Worlds.Find(FName(ActorWorld->URL.Map));
+}

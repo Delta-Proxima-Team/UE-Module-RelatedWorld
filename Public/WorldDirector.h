@@ -63,6 +63,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "WorldDirector")
 		AActor* SpawnActor(URelatedWorld* TargetWorld, UClass* Class, const FTransform& SpawnTransform, ESpawnActorCollisionHandlingMethod CollisionHandlingOverride, AActor* Owner);
 
+	UFUNCTION(BlueprintPure, Category = "WorldDirector")
+		URelatedWorld* GetRelatedWorldFromActor(AActor* InActor) const;
+
 private:
 	TMap<FName, URelatedWorld*> Worlds;
 
