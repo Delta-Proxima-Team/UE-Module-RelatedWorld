@@ -9,6 +9,8 @@
 #include "RelatedWorldModuleInterface.h"
 #include "WorldDirector.generated.h"
 
+DECLARE_LOG_CATEGORY_EXTERN(LogWorldDirector, Log, All);
+
 UCLASS(BlueprintType)
 class RELATEDWORLD_API URelatedWorld : public UObject, public FTickableGameObject
 {

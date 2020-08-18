@@ -9,6 +9,8 @@
 #include "FXSystem.h"
 #include "Components/SceneCaptureComponent.h"
 
+DEFINE_LOG_CATEGORY(LogWorldDirector);
+
 bool URelatedWorld::IsTickable() const
 {
 	return _Context ? true : false;
@@ -265,7 +267,7 @@ bool URelatedWorld::MoveActorToWorld(AActor* InActor)
 		return false;
 	}
 
-	UWorldDirector* Director = CastChecked<UWorldDirector>(GetOuter());
+	UWorldDirector* Director = GetTypedOuter<UWorldDirector>();
 	URelatedWorld* OldRWorld = Director->GetRelatedWorldFromActor(InActor);
 
 	if (OldRWorld != nullptr)
@@ -293,6 +295,19 @@ bool URelatedWorld::MoveActorToWorld(AActor* InActor)
 
 URelatedWorld* UWorldDirector::LoadRelatedLevel(UObject* WorldContextObject, FName LevelName, bool IsNetWorld)
 {
+	URelatedWorld* rWorld = nullptr;
+	
+	if (Worlds.Num())
+	{
+		rWorld = *Worlds.Find(LevelName);
+
+		if (rWorld != nullptr)
+		{
+			UE_LOG(LogWorldDirector, Warning, TEXT("Level %s already loaded as %s"), *LevelName.ToString(), *rWorld->GetName());
+			return nullptr;
+		}
+	}
+
 	UPackage* WorldPackage = nullptr;
 	UWorld* World = nullptr;
 	FString MapName = LevelName.ToString();
@@ -413,7 +428,7 @@ URelatedWorld* UWorldDirector::LoadRelatedLevel(UObject* WorldContextObject, FNa
 	Context.World()->bWorldWasLoadedThisTick = true;
 	Context.World()->SetShouldTick(false);
 
-	URelatedWorld* rWorld = NewObject<URelatedWorld>(this);
+	rWorld = NewObject<URelatedWorld>(this);
 	rWorld->AddToRoot();
 	rWorld->SetContext(&Context);
 	rWorld->SetNetworked(IsNetWorld);
@@ -437,6 +452,11 @@ void UWorldDirector::UnloadAllRelatedLevels()
 
 void UWorldDirector::UnloadRelatedLevelByName(FName LevelName)
 {
+	if (!Worlds.Num())
+	{
+		return;
+	}
+
 	URelatedWorld* rWorld = *Worlds.Find(LevelName);
 	
 	if (rWorld != nullptr)
@@ -469,7 +489,8 @@ AActor* UWorldDirector::SpawnActor(URelatedWorld* TargetWorld, UClass* Class, co
 
 URelatedWorld* UWorldDirector::GetRelatedWorldFromActor(AActor* InActor) const
 {
-	if (InActor == nullptr || !IsValid(InActor))
+
+	if (!Worlds.Num() || InActor == nullptr || !IsValid(InActor))
 	{
 		return nullptr;
 	}
