@@ -293,13 +293,72 @@ bool URelatedWorld::MoveActorToWorld(AActor* InActor)
 	return InActor->Rename(nullptr, _Context->World()->PersistentLevel);
 }
 
+URelatedWorld* UWorldDirector::CreateAbstractWorld(UObject* WorldContextObject, FName WorldName, bool IsNetWorld)
+{
+	URelatedWorld* rWorld = nullptr;
+
+	if (Worlds.Num())
+	{
+		rWorld = Worlds.FindRef(WorldName);
+
+		if (rWorld != nullptr)
+		{
+			UE_LOG(LogWorldDirector, Warning, TEXT("Abstract level %s already created as %s"), *WorldName.ToString(), *rWorld->GetName());
+			return nullptr;
+		}
+	}
+
+	UWorld* World = nullptr;
+	FWorldContext& Context = GEngine->CreateNewWorldContext(EWorldType::Game);
+	Context.PIEInstance = GPlayInEditorID;
+	Context.OwningGameInstance = UGameplayStatics::GetGameInstance(WorldContextObject);
+
+	World = UWorld::CreateWorld(EWorldType::Game, true, WorldName);
+	World->SetGameInstance(Context.OwningGameInstance);
+	Context.SetCurrentWorld(World);
+
+	if (!Context.World()->bIsWorldInitialized)
+	{
+		Context.World()->InitWorld();
+	}
+
+	if (IsNetWorld)
+	{
+		Context.ActiveNetDrivers = GEngine->GetWorldContextFromWorld(WorldContextObject->GetWorld())->ActiveNetDrivers;
+		Context.World()->NetDriver = WorldContextObject->GetWorld()->NetDriver;
+	}
+	else
+	{
+		Context.ActiveNetDrivers.Empty();
+		Context.World()->NetDriver = nullptr;
+	}
+
+	Context.World()->CreateAISystem();
+	Context.World()->InitializeActorsForPlay(Context.World()->URL, true);
+	FNavigationSystem::AddNavigationSystemToWorld(*Context.World(), FNavigationSystemRunMode::GameMode);
+
+	Context.World()->BeginPlay();
+	Context.World()->bWorldWasLoadedThisTick = true;
+	Context.World()->SetShouldTick(false);
+
+	rWorld = NewObject<URelatedWorld>(this);
+	rWorld->AddToRoot();
+	rWorld->SetContext(&Context);
+	rWorld->SetNetworked(IsNetWorld);
+	rWorld->SetPersistentWorld(Context.OwningGameInstance->GetWorld());
+
+	Worlds.Add(WorldName, rWorld);
+
+	return rWorld;
+}
+
 URelatedWorld* UWorldDirector::LoadRelatedLevel(UObject* WorldContextObject, FName LevelName, bool IsNetWorld)
 {
 	URelatedWorld* rWorld = nullptr;
 	
 	if (Worlds.Num())
 	{
-		rWorld = *Worlds.Find(LevelName);
+		rWorld = Worlds.FindRef(LevelName);
 
 		if (rWorld != nullptr)
 		{
@@ -457,7 +516,7 @@ void UWorldDirector::UnloadRelatedLevelByName(FName LevelName)
 		return;
 	}
 
-	URelatedWorld* rWorld = *Worlds.Find(LevelName);
+	URelatedWorld* rWorld = Worlds.FindRef(LevelName);
 	
 	if (rWorld != nullptr)
 	{
@@ -497,5 +556,5 @@ URelatedWorld* UWorldDirector::GetRelatedWorldFromActor(AActor* InActor) const
 
 	UWorld* ActorWorld = InActor->GetWorld();
 
-	return *Worlds.Find(FName(ActorWorld->URL.Map));
+	return Worlds.FindRef(FName(ActorWorld->URL.Map));
 }
