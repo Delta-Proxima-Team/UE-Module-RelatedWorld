@@ -316,6 +316,7 @@ URelatedWorld* UWorldDirector::CreateAbstractWorld(UObject* WorldContextObject, 
 	World = UWorld::CreateWorld(EWorldType::Game, true, WorldName);
 	World->SetGameInstance(Context.OwningGameInstance);
 	Context.SetCurrentWorld(World);
+	Context.World()->URL.Map = WorldName.ToString();
 
 	if (!Context.World()->bIsWorldInitialized)
 	{
@@ -460,8 +461,6 @@ URelatedWorld* UWorldDirector::LoadRelatedLevel(UObject* WorldContextObject, FNa
 		Context.World()->NetDriver = nullptr;
 	}
 
-	Context.World()->SetGameMode(URL);
-
 	if (GShaderCompilingManager)
 	{
 		GShaderCompilingManager->ProcessAsyncResults(false, true);
@@ -531,11 +530,11 @@ void UWorldDirector::UnloadRelatedLevel(URelatedWorld* RelatedWorld)
 	FWorldContext* Context = RelatedWorld->Context();
 	UWorld* World = Context->World();
 
-	GEngine->DestroyWorldContext(World);
 	RelatedWorld->RemoveFromRoot();
 	World->RemoveFromRoot();
 	World->CleanupActors();
 	World->DestroyWorld(true);
+	GEngine->DestroyWorldContext(World);
 	Worlds.Remove(FName(World->URL.Map));
 }
 
