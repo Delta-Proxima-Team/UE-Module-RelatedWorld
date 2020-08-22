@@ -265,6 +265,13 @@ void URelatedWorld::Tick(float DeltaSeconds)
 				WorldParam->PerfTrackers->GetInGamePerformanceTracker((EInGamePerfTrackers)Tracker, EInGamePerfTrackerThreads::RenderThread).Tick();
 			}
 		});
+
+	//Update Scene Cpatures
+	if (World->Scene)
+	{
+		World->SendAllEndOfFrameUpdates();
+		USceneCaptureComponent::UpdateDeferredCaptures(World->Scene);
+	}
 }
 
 AActor* URelatedWorld::SpawnActor(UClass* Class, const FTransform& SpawnTransform, ESpawnActorCollisionHandlingMethod CollisionHandlingOverride, AActor* Owner)
