@@ -8,6 +8,7 @@
 #include "Engine/WorldComposition.h"
 #include "FXSystem.h"
 #include "Components/SceneCaptureComponent.h"
+#include "InGamePerformanceTracker.h"
 
 DEFINE_LOG_CATEGORY(LogWorldDirector);
 
@@ -27,7 +28,6 @@ void URelatedWorld::Tick(float DeltaSeconds)
 	UWorld* World = _Context->World();
 	AWorldSettings* Info = World->GetWorldSettings();
 	UNavigationSystemBase* NavigationSystem = World->GetNavigationSystem();
-	bool bIsPaused = (World->IsPaused() | GetWorld()->IsPaused());
 
 	if (GIntraFrameDebuggingGameThread)
 	{
@@ -35,10 +35,26 @@ void URelatedWorld::Tick(float DeltaSeconds)
 	}
 
 	FWorldDelegates::OnWorldTickStart.Broadcast(World, TickType, DeltaSeconds);
+
+	//Tick game and other thread trackers.
+	for (int32 Tracker = 0; Tracker < (int32)EInGamePerfTrackers::Num; ++Tracker)
+	{
+		World->PerfTrackers->GetInGamePerformanceTracker((EInGamePerfTrackers)Tracker, EInGamePerfTrackerThreads::GameThread).Tick();
+		World->PerfTrackers->GetInGamePerformanceTracker((EInGamePerfTrackers)Tracker, EInGamePerfTrackerThreads::OtherThread).Tick();
+	}
+
+	FMemMark Mark(FMemStack::Get());
 	World->bInTick = true;
+	bool bIsPaused = GetWorld()->IsPaused() || World->IsPaused();
 
 	// Update time.
 	World->RealTimeSeconds += DeltaSeconds;
+
+	// Audio always plays at real-time regardless of time dilation, but only when NOT paused
+	if (!bIsPaused)
+	{
+		World->AudioTimeSeconds += DeltaSeconds;
+	}
 
 	// Save off actual delta
 	float RealDeltaSeconds = DeltaSeconds;
@@ -83,19 +99,13 @@ void URelatedWorld::Tick(float DeltaSeconds)
 
 	bool bDoingActorTicks =
 		(TickType != LEVELTICK_TimeOnly)
-		&& !bIsPaused;
-
-	FLatentActionManager& CurrentLatentActionManager = World->GetLatentActionManager();
-
-	// Reset the list of objects the LatentActionManager has processed this frame
-	CurrentLatentActionManager.BeginFrame();
+		&& !bIsPaused
+		&& (!GetWorld()->NetDriver 
+			|| !GetWorld()->NetDriver->ServerConnection 
+			|| GetWorld()->NetDriver->ServerConnection->State == USOCK_Open);
 
 	if (bDoingActorTicks)
 	{
-		{
-			// Reset Async Trace before Tick starts 
-			//World->ResetAsyncTrace();
-		}
 		{
 			// Run pre-actor tick delegates that want clamped/dilated time
 			FWorldDelegates::OnWorldPreActorTick.Broadcast(World, TickType, DeltaSeconds);
@@ -111,17 +121,16 @@ void URelatedWorld::Tick(float DeltaSeconds)
 		}
 	}
 
-	const TArray<FLevelCollection>* LevelCollections = &World->GetLevelCollections();
-	TArray<ULevel*> Levels = World->GetLevels();
+	const TArray<FLevelCollection>& LevelCollections = World->GetLevelCollections();
 
-	for (int32 i = 0; i < LevelCollections->Num(); ++i)
+	for (int32 i = 0; i < LevelCollections.Num(); ++i)
 	{
 		// Build a list of levels from the collection that are also in the world's Levels array.
 		// Collections may contain levels that aren't loaded in the world at the moment.
 		TArray<ULevel*> LevelsToTick;
-		for (ULevel* CollectionLevel : (*LevelCollections)[i].GetLevels())
+		for (ULevel* CollectionLevel : LevelCollections[i].GetLevels())
 		{
-			if (Levels.Contains(CollectionLevel))
+			if (World->GetLevels().Contains(CollectionLevel))
 			{
 				LevelsToTick.Add(CollectionLevel);
 			}
@@ -137,18 +146,22 @@ void URelatedWorld::Tick(float DeltaSeconds)
 			World->SetupPhysicsTickFunctions(DeltaSeconds);
 			World->TickGroup = TG_PrePhysics; // reset this to the start tick group
 			FTickTaskManagerInterface::Get().StartFrame(World, DeltaSeconds, TickType, LevelsToTick);
+
 			{
 				World->RunTickGroup(TG_PrePhysics, true);
 			}
+
 			World->bInTick = false;
 			World->EnsureCollisionTreeIsBuilt();
 			World->bInTick = true;
+
 			{
 				World->RunTickGroup(TG_StartPhysics, true);
 			}
 			{
 				World->RunTickGroup(TG_DuringPhysics, false); // No wait here, we should run until idle though. We don't care if all of the async ticks are done before we start running post-phys stuff
 			}
+			
 			World->TickGroup = TG_EndPhysics; // set this here so the current tick group is correct during collision notifies, though I am not sure it matters. 'cause of the false up there^^^
 			{
 				World->RunTickGroup(TG_EndPhysics, true);
@@ -164,49 +177,20 @@ void URelatedWorld::Tick(float DeltaSeconds)
 		}
 
 		// We only want to run the following once, so only run it for the source level collection.
-		if ((*LevelCollections)[i].GetType() == ELevelCollectionType::DynamicSourceLevels)
+		if (LevelCollections[i].GetType() == ELevelCollectionType::DynamicSourceLevels)
 		{
-			// Process any remaining latent actions
 			if (!bIsPaused)
 			{
-				// This will process any latent actions that have not been processed already
-				CurrentLatentActionManager.ProcessLatentActions(nullptr, DeltaSeconds);
-			}
-#if 0 // if you need to debug physics drawing in editor, use this. If you type pxvis collision, it will work. 
-			else
-			{
-				// Tick our async work (physics, etc.) and tick with no elapsed time for playersonly
-				TickAsyncWork(0.f);
-				// Wait for async work to come back
-				WaitForAsyncWork();
-			}
-#endif
-
-			{
-				if (TickType != LEVELTICK_TimeOnly && !bIsPaused)
+				// Issues level streaming load/unload requests based on local players being inside/outside level streaming volumes.
+				if (World->IsGameWorld())
 				{
-						World->GetTimerManager().Tick(DeltaSeconds);
-				}
+					World->ProcessLevelStreamingVolumes();
 
-				{
-					//FTickableGameObject::TickObjects(World, TickType, bIsPaused, DeltaSeconds);
-				}
-			}
-
-			// Update cameras and streaming volumes
-			{
-				if (!bIsPaused)
-				{
-					// Issues level streaming load/unload requests based on local players being inside/outside level streaming volumes.
-					if (World->IsGameWorld())
+					if (World->WorldComposition)
 					{
-						World->ProcessLevelStreamingVolumes();
-
-						if (World->WorldComposition)
-						{
-							World->WorldComposition->UpdateStreamingState();
-						}
+						World->WorldComposition->UpdateStreamingState();
 					}
+					
 				}
 			}
 		}
@@ -233,16 +217,54 @@ void URelatedWorld::Tick(float DeltaSeconds)
 	{
 		// Update SpeedTree wind objects.
 		World->Scene->UpdateSpeedTreeWind(World->TimeSeconds);
-		// Update Capture components
-		USceneCaptureComponent::UpdateDeferredCaptures(World->Scene);
 	}
 
+	// Tick the FX system.
 	if (!bIsPaused && World->FXSystem != nullptr)
 	{
 		World->FXSystem->Tick(DeltaSeconds);
 	}
 
+#if WITH_EDITOR
+	// Finish up.
+	if (World->bDebugFrameStepExecution)
+	{
+		World->bDebugPauseExecution = true;
+		World->bDebugFrameStepExecution = false;
+	}
+#endif
+
+
 	World->bInTick = false;
+
+	// players only request from last frame
+	if (World->bPlayersOnlyPending)
+	{
+		World->bPlayersOnly = World->bPlayersOnlyPending;
+		World->bPlayersOnlyPending = false;
+	}
+
+#if WITH_EDITOR
+	if (GIsEditor && World->bDoDelayedUpdateCullDistanceVolumes)
+	{
+		World->bDoDelayedUpdateCullDistanceVolumes = false;
+		World->UpdateCullDistanceVolumes();
+	}
+#endif // WITH_EDITOR
+
+	// Dump the viewpoints with which we were rendered last frame. They will be updated when the world is next rendered.
+	World->ViewLocationsRenderedLastFrame.Reset();
+
+	UWorld* WorldParam = World;
+	ENQUEUE_RENDER_COMMAND(TickInGamePerfTrackersRT)(
+		[WorldParam](FRHICommandList& RHICmdList)
+		{
+			//Tick game and other thread trackers.
+			for (int32 Tracker = 0; Tracker < (int32)EInGamePerfTrackers::Num; ++Tracker)
+			{
+				WorldParam->PerfTrackers->GetInGamePerformanceTracker((EInGamePerfTrackers)Tracker, EInGamePerfTrackerThreads::RenderThread).Tick();
+			}
+		});
 }
 
 AActor* URelatedWorld::SpawnActor(UClass* Class, const FTransform& SpawnTransform, ESpawnActorCollisionHandlingMethod CollisionHandlingOverride, AActor* Owner)
@@ -251,7 +273,7 @@ AActor* URelatedWorld::SpawnActor(UClass* Class, const FTransform& SpawnTransfor
 	check(WorldToSpawn);
 
 	FActorSpawnParameters SpawnParams;
-	SpawnParams.ObjectFlags |= RF_Transactional;
+	SpawnParams.ObjectFlags |= RF_Transient;
 	SpawnParams.Owner = Owner;
 	SpawnParams.SpawnCollisionHandlingOverride = CollisionHandlingOverride;
 
@@ -333,6 +355,8 @@ URelatedWorld* UWorldDirector::CreateAbstractWorld(UObject* WorldContextObject, 
 		Context.ActiveNetDrivers.Empty();
 		Context.World()->NetDriver = nullptr;
 	}
+
+	Context.World()->SetGameMode(Context.World()->URL);
 
 	Context.World()->CreateAISystem();
 	Context.World()->InitializeActorsForPlay(Context.World()->URL, true);
@@ -460,6 +484,8 @@ URelatedWorld* UWorldDirector::LoadRelatedLevel(UObject* WorldContextObject, FNa
 		Context.ActiveNetDrivers.Empty();
 		Context.World()->NetDriver = nullptr;
 	}
+
+	Context.World()->SetGameMode(URL);
 
 	if (GShaderCompilingManager)
 	{
