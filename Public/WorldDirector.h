@@ -20,6 +20,8 @@ public:
 	void SetNetworked(bool bNetworked) { bIsNetworkedWorld = bNetworked; }
 	void SetPersistentWorld(UWorld* World) { PersistentWorld = World; }
 
+	void HandleBeginPlay();
+
 	void SetContext(FWorldContext* Context) { _Context = Context; }
 	FWorldContext* Context() const { return _Context; }
 

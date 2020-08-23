@@ -9,6 +9,8 @@
 #include "FXSystem.h"
 #include "Components/SceneCaptureComponent.h"
 #include "InGamePerformanceTracker.h"
+#include "GameFramework/GameModeBase.h"
+#include "GameFramework/GameStateBase.h"
 
 DEFINE_LOG_CATEGORY(LogWorldDirector);
 
@@ -274,6 +276,18 @@ void URelatedWorld::Tick(float DeltaSeconds)
 	}
 }
 
+void URelatedWorld::HandleBeginPlay()
+{
+	AGameModeBase* GM = GetWorld()->GetAuthGameMode();
+	AWorldSettings* Info = Context()->World()->GetWorldSettings();
+
+	if (GM != nullptr)
+	{
+		Info->NotifyBeginPlay();
+		Info->NotifyMatchStarted();
+	}
+}
+
 AActor* URelatedWorld::SpawnActor(UClass* Class, const FTransform& SpawnTransform, ESpawnActorCollisionHandlingMethod CollisionHandlingOverride, AActor* Owner)
 {
 	UWorld* WorldToSpawn = Context()->World();
@@ -363,13 +377,10 @@ URelatedWorld* UWorldDirector::CreateAbstractWorld(UObject* WorldContextObject, 
 		Context.World()->NetDriver = nullptr;
 	}
 
-	Context.World()->SetGameMode(Context.World()->URL);
-
 	Context.World()->CreateAISystem();
 	Context.World()->InitializeActorsForPlay(Context.World()->URL, true);
 	FNavigationSystem::AddNavigationSystemToWorld(*Context.World(), FNavigationSystemRunMode::GameMode);
 
-	Context.World()->BeginPlay();
 	Context.World()->bWorldWasLoadedThisTick = true;
 	Context.World()->SetShouldTick(false);
 
@@ -378,6 +389,7 @@ URelatedWorld* UWorldDirector::CreateAbstractWorld(UObject* WorldContextObject, 
 	rWorld->SetContext(&Context);
 	rWorld->SetNetworked(IsNetWorld);
 	rWorld->SetPersistentWorld(Context.OwningGameInstance->GetWorld());
+	rWorld->HandleBeginPlay();
 
 	Worlds.Add(WorldName, rWorld);
 
@@ -492,8 +504,6 @@ URelatedWorld* UWorldDirector::LoadRelatedLevel(UObject* WorldContextObject, FNa
 		Context.World()->NetDriver = nullptr;
 	}
 
-	Context.World()->SetGameMode(URL);
-
 	if (GShaderCompilingManager)
 	{
 		GShaderCompilingManager->ProcessAsyncResults(false, true);
@@ -515,7 +525,6 @@ URelatedWorld* UWorldDirector::LoadRelatedLevel(UObject* WorldContextObject, FNa
 	Context.LastURL = URL;
 	Context.LastURL.Map = MapName;
 
-	Context.World()->BeginPlay();
 	Context.World()->bWorldWasLoadedThisTick = true;
 	Context.World()->SetShouldTick(false);
 
@@ -524,6 +533,7 @@ URelatedWorld* UWorldDirector::LoadRelatedLevel(UObject* WorldContextObject, FNa
 	rWorld->SetContext(&Context);
 	rWorld->SetNetworked(IsNetWorld);
 	rWorld->SetPersistentWorld(Context.OwningGameInstance->GetWorld());
+	rWorld->HandleBeginPlay();
 
 	Worlds.Add(LevelName, rWorld);
 
