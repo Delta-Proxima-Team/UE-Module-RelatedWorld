@@ -11,6 +11,7 @@
 #include "InGamePerformanceTracker.h"
 #include "GameFramework/GameModeBase.h"
 #include "GameFramework/GameStateBase.h"
+#include "EngineUtils.h"
 
 DEFINE_LOG_CATEGORY(LogWorldDirector);
 
@@ -571,14 +572,41 @@ void UWorldDirector::UnloadRelatedLevel(URelatedWorld* RelatedWorld)
 	check(RelatedWorld);
 
 	FWorldContext* Context = RelatedWorld->Context();
-	UWorld* World = Context->World();
 
+	RelatedWorld->SetContext(nullptr);
 	RelatedWorld->RemoveFromRoot();
-	World->RemoveFromRoot();
-	World->CleanupActors();
-	World->DestroyWorld(true);
-	GEngine->DestroyWorldContext(World);
-	Worlds.Remove(FName(World->URL.Map));
+	Worlds.Remove(FName(Context->World()->URL.Map));
+
+	for (FActorIterator ActorIt(Context->World()); ActorIt; ++ActorIt)
+	{
+		ActorIt->RouteEndPlay(EEndPlayReason::LevelTransition);
+	}
+
+	Context->World()->CleanupWorld();
+	GEngine->WorldDestroyed(Context->World());
+
+	// mark everything else contained in the world to be deleted
+	for (auto LevelIt(Context->World()->GetLevelIterator()); LevelIt; ++LevelIt)
+	{
+		const ULevel* Level = *LevelIt;
+		if (Level)
+		{
+			CastChecked<UWorld>(Level->GetOuter())->MarkObjectsPendingKill();
+		}
+	}
+
+	for (ULevelStreaming* LevelStreaming : Context->World()->GetStreamingLevels())
+	{
+		// If an unloaded levelstreaming still has a loaded level we need to mark its objects to be deleted as well
+		if (LevelStreaming->GetLoadedLevel() && (!LevelStreaming->ShouldBeLoaded() || !LevelStreaming->ShouldBeVisible()))
+		{
+			CastChecked<UWorld>(LevelStreaming->GetLoadedLevel()->GetOuter())->MarkObjectsPendingKill();
+		}
+	}
+
+	Context->World()->RemoveFromRoot();
+	Context->SetCurrentWorld(nullptr);
+	GEngine->DestroyWorldContext(Context->World());
 }
 
 AActor* UWorldDirector::SpawnActor(URelatedWorld* TargetWorld, UClass* Class, const FTransform& SpawnTransform, ESpawnActorCollisionHandlingMethod CollisionHandlingOverride, AActor* Owner)
