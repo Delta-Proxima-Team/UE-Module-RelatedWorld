@@ -337,6 +337,13 @@ bool URelatedWorld::MoveActorToWorld(AActor* InActor)
 	return InActor->Rename(nullptr, _Context->World()->PersistentLevel);
 }
 
+void URelatedWorld::SetWorldOrigin(FIntVector NewOrigin)
+{
+	UWorld* World = Context()->World();
+	check(World);
+	World->SetNewWorldOrigin(NewOrigin);
+}
+
 URelatedWorld* UWorldDirector::CreateAbstractWorld(UObject* WorldContextObject, FName WorldName, bool IsNetWorld)
 {
 	URelatedWorld* rWorld = nullptr;

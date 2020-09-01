@@ -31,6 +31,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "WorldDirector")
 		bool MoveActorToWorld(AActor* InActor);
 
+	UFUNCTION(BlueprintCallable, Category = "WorldDirector")
+		void SetWorldOrigin(FIntVector NewOrigin);
+
 	UFUNCTION(BlueprintPure, Category = "WorldDirector")
 		bool IsNetworkedWorld() const { return bIsNetworkedWorld; }
 
