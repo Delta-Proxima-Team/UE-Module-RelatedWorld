@@ -344,7 +344,12 @@ void URelatedWorld::SetWorldOrigin(FIntVector NewOrigin)
 	World->SetNewWorldOrigin(NewOrigin);
 }
 
-URelatedWorld* UWorldDirector::CreateAbstractWorld(UObject* WorldContextObject, FName WorldName, bool IsNetWorld)
+void URelatedWorld::TranslateWorld(FIntVector NewLocation)
+{
+	WorldLocation = NewLocation;
+}
+
+URelatedWorld* UWorldDirector::CreateAbstractWorld(UObject* WorldContextObject, FName WorldName, FIntVector LevelLocation, bool IsNetWorld)
 {
 	URelatedWorld* rWorld = nullptr;
 
@@ -396,6 +401,7 @@ URelatedWorld* UWorldDirector::CreateAbstractWorld(UObject* WorldContextObject, 
 	rWorld->AddToRoot();
 	rWorld->SetContext(&Context);
 	rWorld->SetNetworked(IsNetWorld);
+	rWorld->TranslateWorld(LevelLocation);
 	rWorld->SetPersistentWorld(Context.OwningGameInstance->GetWorld());
 	rWorld->HandleBeginPlay();
 
@@ -404,7 +410,7 @@ URelatedWorld* UWorldDirector::CreateAbstractWorld(UObject* WorldContextObject, 
 	return rWorld;
 }
 
-URelatedWorld* UWorldDirector::LoadRelatedLevel(UObject* WorldContextObject, FName LevelName, bool IsNetWorld)
+URelatedWorld* UWorldDirector::LoadRelatedLevel(UObject* WorldContextObject, FName LevelName, FIntVector LevelLocation, bool IsNetWorld)
 {
 	URelatedWorld* rWorld = nullptr;
 	
@@ -540,6 +546,7 @@ URelatedWorld* UWorldDirector::LoadRelatedLevel(UObject* WorldContextObject, FNa
 	rWorld->AddToRoot();
 	rWorld->SetContext(&Context);
 	rWorld->SetNetworked(IsNetWorld);
+	rWorld->TranslateWorld(LevelLocation);
 	rWorld->SetPersistentWorld(Context.OwningGameInstance->GetWorld());
 	rWorld->HandleBeginPlay();
 

@@ -16,19 +16,16 @@ public:
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 	virtual void InitializeComponent() override;
 	virtual void NotifyLocationChanged(const FVector& NewLocation);
-	virtual void NotifyOriginChanged(const FIntVector& NewOrigin);
+	virtual void NotifyWorldLocationChanged(const FIntVector& NewWorldLocation);
 	virtual void TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 
 private:
 	UFUNCTION()
-		void OnRep_RelatedOrigin();
-
-	UFUNCTION()
 		void OnRep_RelatedLocation();
 
 private:
-	UPROPERTY(ReplicatedUsing=OnRep_RelatedOrigin)
-		FIntVector RelatedOrigin;
+	UPROPERTY(Replicated)
+		FIntVector RelatedWorldLocation;
 
 	UPROPERTY(ReplicatedUsing=OnRep_RelatedLocation)
 		FVector RelatedLocation;

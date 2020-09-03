@@ -15,7 +15,7 @@ void URelatedWorldNetLocCorrectionComponent::GetLifetimeReplicatedProps(TArray<F
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
-	DOREPLIFETIME(URelatedWorldNetLocCorrectionComponent, RelatedOrigin);
+	DOREPLIFETIME(URelatedWorldNetLocCorrectionComponent, RelatedWorldLocation);
 	DOREPLIFETIME(URelatedWorldNetLocCorrectionComponent, RelatedLocation);
 }
 
@@ -33,24 +33,26 @@ void URelatedWorldNetLocCorrectionComponent::TickComponent(float DeltaTime, enum
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
-	if (ActorOwner && !ActorOwner->IsPendingKill())
+	if (ActorOwner && !ActorOwner->IsPendingKill() && GetOwnerRole() == ROLE_Authority)
 	{
 		URelatedWorld* rWorld = UWorldDirector::GetWorldDirector()->GetRelatedWorldFromActor(ActorOwner);
 
 		if (rWorld)
 		{
-			FIntVector WorldOrigin = rWorld->Context()->World()->OriginLocation;
+			FIntVector WorldLocation = rWorld->GetWorldTranslation();
 			
-			if (WorldOrigin != RelatedOrigin)
+			if (WorldLocation != RelatedWorldLocation)
 			{
-				NotifyOriginChanged(WorldOrigin);
+				NotifyWorldLocationChanged(WorldLocation);
 			}
 
+			FIntVector rOrign = rWorld->Context()->World()->OriginLocation;
 			FVector ActorLocation = ActorOwner->GetActorLocation();
+			FVector rActorLocation(ActorLocation.X + rOrign.X, ActorLocation.Y + rOrign.Y, ActorLocation.Z + rOrign.Z);
 
-			if (ActorLocation != RelatedLocation)
+			if (rActorLocation != RelatedLocation)
 			{
-				NotifyLocationChanged(ActorLocation);
+				NotifyLocationChanged(rActorLocation);
 			}
 		}
 	}
@@ -63,19 +65,12 @@ void URelatedWorldNetLocCorrectionComponent::NotifyLocationChanged(const FVector
 
 void URelatedWorldNetLocCorrectionComponent::OnRep_RelatedLocation()
 {
-	FIntVector Shift = RelatedOrigin - GetWorld()->OriginLocation;
-	FVector ActorLocation = FRepMovement::RebaseOntoLocalOrigin(RelatedLocation, Shift);
+	FIntVector Shift = RelatedWorldLocation - GetWorld()->OriginLocation;
+	FVector ActorLocation(RelatedLocation.X + Shift.X,RelatedLocation.Y + Shift.Y,RelatedLocation.Z + Shift.Z);
 	ActorOwner->SetActorLocation(ActorLocation);
-
-	GEngine->AddOnScreenDebugMessage(-1, 1, FColor::Red, FString::Printf(TEXT("newloc %s"), *ActorLocation.ToString()));
 }
 
-void URelatedWorldNetLocCorrectionComponent::NotifyOriginChanged(const FIntVector& NewOrigin)
+void URelatedWorldNetLocCorrectionComponent::NotifyWorldLocationChanged(const FIntVector& NewWorldLocation)
 {
-	RelatedOrigin = NewOrigin;
-}
-
-void URelatedWorldNetLocCorrectionComponent::OnRep_RelatedOrigin()
-{
-
+	RelatedWorldLocation = NewWorldLocation;
 }

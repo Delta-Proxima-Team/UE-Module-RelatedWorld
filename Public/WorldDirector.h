@@ -34,8 +34,14 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "WorldDirector")
 		void SetWorldOrigin(FIntVector NewOrigin);
 
+	UFUNCTION(BlueprintCallable, Category = "WorldDirector")
+		void TranslateWorld(FIntVector NewLocation);
+
 	UFUNCTION(BlueprintPure, Category = "WorldDirector")
 		bool IsNetworkedWorld() const { return bIsNetworkedWorld; }
+
+	UFUNCTION(BlueprintPure, Category = "WorldDirector")
+		FIntVector GetWorldTranslation() const { return WorldLocation; }
 
 	void Tick(float DeltaSeconds) override;
 	bool IsTickable() const override;
@@ -48,6 +54,7 @@ private:
 	FWorldContext* _Context;
 	UWorld* PersistentWorld;
 	bool bIsNetworkedWorld;
+	FIntVector WorldLocation;
 
 };
 
@@ -64,10 +71,10 @@ public:
 		}
 
 	UFUNCTION(BlueprintCallable, Category = "WorldDirector", Meta=(WorldContext="WorldContextObject"))
-		URelatedWorld* LoadRelatedLevel(UObject* WorldContextObject, FName LevelName, bool IsNetWorld = true);
+		URelatedWorld* LoadRelatedLevel(UObject* WorldContextObject, FName LevelName, FIntVector LevelLocation, bool IsNetWorld = true);
 
 	UFUNCTION(BlueprintCallable, Category = "WorldDirector", Meta = (WorldContext = "WorldContextObject"))
-		URelatedWorld* CreateAbstractWorld(UObject* WorldContextObject, FName WorldName, bool IsNetWorld = true);
+		URelatedWorld* CreateAbstractWorld(UObject* WorldContextObject, FName WorldName, FIntVector LevelLocation, bool IsNetWorld = true);
 
 	UFUNCTION(BlueprintCallable, Category = "WorldDirector")
 		void UnloadAllRelatedLevels();
