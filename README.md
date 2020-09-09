@@ -26,6 +26,7 @@ NetDriverDefinitions=(DefName="GameNetDriver",DriverClassName="/Script/RelatedWo
 ```
 
 - Make sure plugin **OnlineSubsystemUtils** is on
+- Make sure option **EnableMultiplayerWorldOriginRebasing** is on
 - Recompile you project
 
 ## Notes for public version
