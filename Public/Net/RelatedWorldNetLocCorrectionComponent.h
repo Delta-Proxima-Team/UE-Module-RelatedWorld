@@ -14,10 +14,10 @@ class RELATEDWORLD_API URelatedWorldNetLocCorrectionComponent : public UActorCom
 public:
 	URelatedWorldNetLocCorrectionComponent();
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+	virtual void PreReplication(IRepChangedPropertyTracker& ChangedPropertyTracker) override;
 	virtual void InitializeComponent() override;
 	virtual void NotifyLocationChanged(const FVector& NewLocation);
 	virtual void NotifyWorldLocationChanged(const FIntVector& NewWorldLocation);
-	virtual void TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 
 private:
 	UFUNCTION()

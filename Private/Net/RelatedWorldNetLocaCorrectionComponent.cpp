@@ -6,7 +6,6 @@
 
 URelatedWorldNetLocCorrectionComponent::URelatedWorldNetLocCorrectionComponent()
 {
-	PrimaryComponentTick.bCanEverTick = true;
 	bWantsInitializeComponent = true;
 	SetIsReplicatedByDefault(true);
 }
@@ -29,9 +28,9 @@ void URelatedWorldNetLocCorrectionComponent::InitializeComponent()
 	}
 }
 
-void URelatedWorldNetLocCorrectionComponent::TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
+void URelatedWorldNetLocCorrectionComponent::PreReplication(IRepChangedPropertyTracker& ChangedPropertyTracker)
 {
-	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
+	Super::PreReplication(ChangedPropertyTracker);
 
 	if (ActorOwner && !ActorOwner->IsPendingKill() && GetOwnerRole() == ROLE_Authority)
 	{
