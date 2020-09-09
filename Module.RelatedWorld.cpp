@@ -4,6 +4,8 @@
 #include "RelatedWorldModuleInterface.h"
 #include "WorldDirector.h"
 
+void OnRep_ReplicatedMovement_Hook(UObject* Context, FFrame& TheStack, RESULT_DECL);
+
 class FRelatedWorldModule : public IRelatedWorldModule
 {
 public:
@@ -12,6 +14,10 @@ public:
 		WorldDirector = NewObject<UWorldDirector>();
 		check(WorldDirector);
 		WorldDirector->AddToRoot();
+
+		//Setup some hooks on RepNotify events
+		UFunction* FUNC_OnRep_ReplicatedMovement = AActor::StaticClass()->FindFunctionByName(TEXT("OnRep_ReplicatedMovement"));
+		FUNC_OnRep_ReplicatedMovement->SetNativeFunc(&OnRep_ReplicatedMovement_Hook);
 	}
 
 	void ShutdownModule()

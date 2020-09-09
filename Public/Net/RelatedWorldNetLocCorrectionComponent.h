@@ -6,6 +6,8 @@
 #include "Components/ActorComponent.h"
 #include "RelatedWorldNetLocCorrectionComponent.generated.h"
 
+class URelatedWorld;
+
 UCLASS(Meta=(BlueprintSpawnableComponent))
 class RELATEDWORLD_API URelatedWorldNetLocCorrectionComponent : public UActorComponent
 {
@@ -16,19 +18,23 @@ public:
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 	virtual void PreReplication(IRepChangedPropertyTracker& ChangedPropertyTracker) override;
 	virtual void InitializeComponent() override;
-	virtual void NotifyLocationChanged(const FVector& NewLocation);
 	virtual void NotifyWorldLocationChanged(const FIntVector& NewWorldLocation);
 
-private:
 	UFUNCTION()
-		void OnRep_RelatedLocation();
+		void OnRep_ReplicatedMovement();
 
 private:
+		void PostNetReceiveLocationAndRotation();
+
+private:
+	URelatedWorld* RelatedWorld;
+	
+	UPROPERTY(Replicated)
+		bool bNeedCorrection;
+
 	UPROPERTY(Replicated)
 		FIntVector RelatedWorldLocation;
 
-	UPROPERTY(ReplicatedUsing=OnRep_RelatedLocation)
-		FVector RelatedLocation;
-
-	AActor* ActorOwner;
+	UPROPERTY(Replicated)
+		AActor* ActorOwner;
 };
