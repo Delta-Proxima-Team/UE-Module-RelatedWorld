@@ -23,6 +23,9 @@ public:
 	UFUNCTION()
 		void OnRep_ReplicatedMovement();
 
+	UFUNCTION()
+		void OnRep_Initial();
+
 private:
 	void SyncReplicatedPhysicsSimulation();
 	void PostNetReceivePhysicState();
@@ -32,6 +35,9 @@ private:
 	URelatedWorld* RelatedWorld;
 	bool SavedbRepPhysics;
 	
+	UPROPERTY(ReplicatedUsing = OnRep_Initial)
+		bool bInitialReplication;
+
 	UPROPERTY(Replicated)
 		bool bNeedCorrection;
 

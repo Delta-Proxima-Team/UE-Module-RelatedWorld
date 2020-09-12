@@ -26,6 +26,7 @@ void OnRep_ReplicatedMovement_Hook(UObject* Context, FFrame& TheStack, RESULT_DE
 
 URelatedWorldNetLocCorrectionComponent::URelatedWorldNetLocCorrectionComponent()
 {
+	bInitialReplication = false;
 	bWantsInitializeComponent = true;
 	SetIsReplicatedByDefault(true);
 	bNeedCorrection = false;
@@ -35,6 +36,7 @@ void URelatedWorldNetLocCorrectionComponent::GetLifetimeReplicatedProps(TArray<F
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
+	DOREPLIFETIME_CONDITION(URelatedWorldNetLocCorrectionComponent, bInitialReplication, COND_InitialOnly);
 	DOREPLIFETIME(URelatedWorldNetLocCorrectionComponent, bNeedCorrection);
 	DOREPLIFETIME(URelatedWorldNetLocCorrectionComponent, ActorOwner);
 	DOREPLIFETIME(URelatedWorldNetLocCorrectionComponent, RelatedWorldLocation);
@@ -51,11 +53,30 @@ void URelatedWorldNetLocCorrectionComponent::InitializeComponent()
 
 		if (RelatedWorld)
 		{
+			bInitialReplication = true;
 			bNeedCorrection = true;
 		}
 		else
 		{
 			bNeedCorrection = false;
+		}
+	}
+}
+
+void URelatedWorldNetLocCorrectionComponent::OnRep_Initial()
+{
+	if (ActorOwner && !ActorOwner->IsPendingKill() && bNeedCorrection)
+	{
+		UPrimitiveComponent* PrimComp = Cast<UPrimitiveComponent>(ActorOwner->GetRootComponent());
+
+		if (PrimComp && PrimComp->IsSimulatingPhysics())
+		{
+			FVector Location = PrimComp->GetComponentLocation();
+			Location.X += RelatedWorldLocation.X;
+			Location.Y += RelatedWorldLocation.Y;
+			Location.Z += RelatedWorldLocation.Z;
+
+			PrimComp->SetWorldLocation(Location);
 		}
 	}
 }
@@ -97,6 +118,7 @@ void URelatedWorldNetLocCorrectionComponent::OnRep_ReplicatedMovement()
 		{
 			// Turn on/off physics sim to match server.
 			SyncReplicatedPhysicsSimulation();
+			SavedbRepPhysics = LocalRepMovement.bRepPhysics;
 		}
 
 		if (LocalRepMovement.bRepPhysics)
