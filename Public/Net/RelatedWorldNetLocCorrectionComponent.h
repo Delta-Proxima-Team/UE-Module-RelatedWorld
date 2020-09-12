@@ -24,10 +24,13 @@ public:
 		void OnRep_ReplicatedMovement();
 
 private:
-		void PostNetReceiveLocationAndRotation();
+	void SyncReplicatedPhysicsSimulation();
+	void PostNetReceivePhysicState();
+	void PostNetReceiveLocationAndRotation();
 
 private:
 	URelatedWorld* RelatedWorld;
+	bool SavedbRepPhysics;
 	
 	UPROPERTY(Replicated)
 		bool bNeedCorrection;
@@ -37,4 +40,6 @@ private:
 
 	UPROPERTY(Replicated)
 		AActor* ActorOwner;
+
+
 };

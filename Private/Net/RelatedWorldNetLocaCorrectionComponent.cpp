@@ -2,6 +2,7 @@
 
 #include "Net/RelatedWorldNetLocCorrectionComponent.h"
 #include "Net/UnrealNetwork.h"
+#include "PhysicsReplication.h"
 #include "WorldDirector.h"
 
 void OnRep_ReplicatedMovement_Hook(UObject* Context, FFrame& TheStack, RESULT_DECL)
@@ -92,12 +93,11 @@ void URelatedWorldNetLocCorrectionComponent::OnRep_ReplicatedMovement()
 
 	if (RootComponent)
 	{
-		//Todo Protected function. Need to override for properly work
-		/*if (ActorReplication::SavedbRepPhysics != LocalRepMovement.bRepPhysics)
+		if (SavedbRepPhysics != LocalRepMovement.bRepPhysics)
 		{
 			// Turn on/off physics sim to match server.
 			SyncReplicatedPhysicsSimulation();
-		}*/
+		}
 
 		if (LocalRepMovement.bRepPhysics)
 		{
@@ -107,8 +107,7 @@ void URelatedWorldNetLocCorrectionComponent::OnRep_ReplicatedMovement()
 			UPrimitiveComponent* RootPrimComp = Cast<UPrimitiveComponent>(RootComponent);
 			if (!RootPrimComp || !RootPrimComp->IsWelded())
 			{
-				//Todo: reImplment in component
-				ActorOwner->PostNetReceivePhysicState();
+				PostNetReceivePhysicState();
 			}
 		}
 		else
@@ -134,6 +133,58 @@ void URelatedWorldNetLocCorrectionComponent::OnRep_ReplicatedMovement()
 				}
 			}
 		}
+	}
+}
+
+void URelatedWorldNetLocCorrectionComponent::SyncReplicatedPhysicsSimulation()
+{
+	const FRepMovement& LocalRepMovement = ActorOwner->GetReplicatedMovement();
+	USceneComponent* RootComponent = ActorOwner->GetRootComponent();
+
+	if (ActorOwner->IsReplicatingMovement() && RootComponent && (RootComponent->IsSimulatingPhysics() != LocalRepMovement.bRepPhysics))
+	{
+		UPrimitiveComponent* RootPrimComp = Cast<UPrimitiveComponent>(RootComponent);
+		if (RootPrimComp)
+		{
+			RootPrimComp->SetSimulatePhysics(LocalRepMovement.bRepPhysics);
+
+			if (!LocalRepMovement.bRepPhysics)
+			{
+				if (UWorld* World = GetWorld())
+				{
+					if (FPhysScene* PhysScene = World->GetPhysicsScene())
+					{
+						if (FPhysicsReplication* PhysicsReplication = PhysScene->GetPhysicsReplication())
+						{
+							PhysicsReplication->RemoveReplicatedTarget(RootPrimComp);
+						}
+					}
+				}
+			}
+		}
+	}
+}
+
+void URelatedWorldNetLocCorrectionComponent::PostNetReceivePhysicState()
+{
+	const FRepMovement& LocalRepMovement = ActorOwner->GetReplicatedMovement();
+	UPrimitiveComponent* RootPrimComp = Cast<UPrimitiveComponent>(ActorOwner->GetRootComponent());
+	if (RootPrimComp)
+	{
+		FRigidBodyState NewState;
+		
+		FVector NewLocation = FRepMovement::RebaseOntoLocalOrigin(LocalRepMovement.Location, ActorOwner);
+		NewLocation.X += RelatedWorldLocation.X;
+		NewLocation.Y += RelatedWorldLocation.Y;
+		NewLocation.Z += RelatedWorldLocation.Z;
+
+		NewState.Position = NewLocation;
+		NewState.Quaternion = LocalRepMovement.Rotation.Quaternion();
+		NewState.LinVel = LocalRepMovement.LinearVelocity;
+		NewState.AngVel = LocalRepMovement.AngularVelocity;
+		NewState.Flags = (LocalRepMovement.bSimulatedPhysicSleep ? ERigidBodyFlags::Sleeping : ERigidBodyFlags::None) | ERigidBodyFlags::NeedsUpdate;
+
+		RootPrimComp->SetRigidBodyReplicatedTarget(NewState);
 	}
 }
 
