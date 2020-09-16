@@ -67,16 +67,21 @@ void URelatedWorldNetLocCorrectionComponent::OnRep_Initial()
 {
 	if (ActorOwner && !ActorOwner->IsPendingKill() && bNeedCorrection)
 	{
-		UPrimitiveComponent* PrimComp = Cast<UPrimitiveComponent>(ActorOwner->GetRootComponent());
+		USceneComponent* RootComponent = ActorOwner->GetRootComponent();
 
-		if (PrimComp && PrimComp->IsSimulatingPhysics())
+		if (RootComponent)
 		{
-			FVector Location = PrimComp->GetComponentLocation();
-			Location.X += RelatedWorldLocation.X;
-			Location.Y += RelatedWorldLocation.Y;
-			Location.Z += RelatedWorldLocation.Z;
+			FVector Location = RootComponent->GetComponentLocation();
+			UPrimitiveComponent* PrimComp = Cast<UPrimitiveComponent>(ActorOwner->GetRootComponent());
 
-			PrimComp->SetWorldLocation(Location);
+			if ((PrimComp && PrimComp->IsSimulatingPhysics()) || Location == FVector::ZeroVector)
+			{
+				Location.X += RelatedWorldLocation.X;
+				Location.Y += RelatedWorldLocation.Y;
+				Location.Z += RelatedWorldLocation.Z;
+
+				RootComponent->SetWorldLocation(Location);
+			}
 		}
 	}
 }
