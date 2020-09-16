@@ -1,6 +1,7 @@
 // Copyright Delta-Proxima Team (c) 2007-2020
 
 #include "WorldDirector.h"
+#include "Net/RelatedWorldNetLocCorrectionComponent.h"
 #include "Kismet/GameplayStatics.h"
 #include "ShaderCompiler.h"
 #include "Engine/LevelStreaming.h"
@@ -304,7 +305,7 @@ AActor* URelatedWorld::SpawnActor(UClass* Class, const FTransform& SpawnTransfor
 	return SpawnedActor;
 }
 
-bool URelatedWorld::MoveActorToWorld(AActor* InActor)
+bool URelatedWorld::MoveActorToWorld(AActor* InActor, bool bTranslateLocation)
 {
 	if (!IsValid(InActor) || InActor->IsPendingKill())
 	{
@@ -334,7 +335,35 @@ bool URelatedWorld::MoveActorToWorld(AActor* InActor)
 		}
 	}
 
-	return InActor->Rename(nullptr, _Context->World()->PersistentLevel);
+	//Translate coordinates into new one
+	USceneComponent* RootComponent = InActor->GetRootComponent();
+
+	if (RootComponent)
+	{
+		FIntVector OldTranslation = OldRWorld != nullptr ? OldRWorld->GetWorldTranslation() : FIntVector::ZeroValue;
+
+		FVector Location = FRepMovement::RebaseOntoZeroOrigin(RootComponent->GetComponentLocation(), RootComponent);
+		
+		if (bTranslateLocation)
+		{
+			Location.X += OldTranslation.X - WorldLocation.X;
+			Location.Y += OldTranslation.Y - WorldLocation.Y;
+			Location.Z += OldTranslation.Z - WorldLocation.Z;
+		}
+
+		FVector NewLocation = FRepMovement::RebaseOntoLocalOrigin(Location, Context()->World()->OriginLocation);
+
+		RootComponent->SetWorldLocation(NewLocation);
+	}
+
+	URelatedWorldNetLocCorrectionComponent* CorrectionComp = Cast<URelatedWorldNetLocCorrectionComponent>(InActor->GetComponentByClass(URelatedWorldNetLocCorrectionComponent::StaticClass()));
+
+	if (CorrectionComp != nullptr)
+	{
+		CorrectionComp->NotifyWorldChanged(this);
+	}
+
+	return InActor->Rename(nullptr, Context()->World()->PersistentLevel);
 }
 
 void URelatedWorld::SetWorldOrigin(FIntVector NewOrigin)

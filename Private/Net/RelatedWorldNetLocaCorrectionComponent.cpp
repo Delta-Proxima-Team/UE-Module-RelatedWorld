@@ -63,6 +63,24 @@ void URelatedWorldNetLocCorrectionComponent::InitializeComponent()
 	}
 }
 
+void URelatedWorldNetLocCorrectionComponent::PreReplication(IRepChangedPropertyTracker& ChangedPropertyTracker)
+{
+	Super::PreReplication(ChangedPropertyTracker);
+
+	if (ActorOwner && !ActorOwner->IsPendingKill() && GetOwnerRole() == ROLE_Authority)
+	{
+		if (RelatedWorld)
+		{
+			FIntVector WorldLocation = RelatedWorld->GetWorldTranslation();
+			
+			if (WorldLocation != RelatedWorldLocation)
+			{
+				NotifyWorldLocationChanged(WorldLocation);
+			}
+		}
+	}
+}
+
 void URelatedWorldNetLocCorrectionComponent::OnRep_Initial()
 {
 	if (ActorOwner && !ActorOwner->IsPendingKill() && bNeedCorrection)
@@ -86,22 +104,10 @@ void URelatedWorldNetLocCorrectionComponent::OnRep_Initial()
 	}
 }
 
-void URelatedWorldNetLocCorrectionComponent::PreReplication(IRepChangedPropertyTracker& ChangedPropertyTracker)
+void URelatedWorldNetLocCorrectionComponent::OnRep_RelatedWorldLocation()
 {
-	Super::PreReplication(ChangedPropertyTracker);
-
-	if (ActorOwner && !ActorOwner->IsPendingKill() && GetOwnerRole() == ROLE_Authority)
-	{
-		if (RelatedWorld)
-		{
-			FIntVector WorldLocation = RelatedWorld->GetWorldTranslation();
-			
-			if (WorldLocation != RelatedWorldLocation)
-			{
-				NotifyWorldLocationChanged(WorldLocation);
-			}
-		}
-	}
+	//Recalculate client position
+	OnRep_ReplicatedMovement();
 }
 
 void URelatedWorldNetLocCorrectionComponent::OnRep_ReplicatedMovement()
@@ -230,6 +236,12 @@ void URelatedWorldNetLocCorrectionComponent::PostNetReceiveLocationAndRotation()
 	{
 		ActorOwner->SetActorLocationAndRotation(NewLocation, LocalRepMovement.Rotation, /*bSweep=*/ false);
 	}
+}
+
+void URelatedWorldNetLocCorrectionComponent::NotifyWorldChanged(URelatedWorld* NewWorld)
+{
+	RelatedWorld = NewWorld;
+	NotifyWorldLocationChanged(NewWorld->GetWorldTranslation());
 }
 
 void URelatedWorldNetLocCorrectionComponent::NotifyWorldLocationChanged(const FIntVector& NewWorldLocation)

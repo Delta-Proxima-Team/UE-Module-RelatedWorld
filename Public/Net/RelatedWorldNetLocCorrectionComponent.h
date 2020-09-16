@@ -18,7 +18,11 @@ public:
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 	virtual void PreReplication(IRepChangedPropertyTracker& ChangedPropertyTracker) override;
 	virtual void InitializeComponent() override;
+	virtual void NotifyWorldChanged(URelatedWorld* NewWorld);
 	virtual void NotifyWorldLocationChanged(const FIntVector& NewWorldLocation);
+
+	UFUNCTION()
+		void OnRep_RelatedWorldLocation();
 
 	UFUNCTION()
 		void OnRep_ReplicatedMovement();
@@ -41,7 +45,7 @@ private:
 	UPROPERTY(Replicated)
 		bool bNeedCorrection;
 
-	UPROPERTY(Replicated)
+	UPROPERTY(ReplicatedUsing = OnRep_RelatedWorldLocation)
 		FIntVector RelatedWorldLocation;
 
 	UPROPERTY(Replicated)

@@ -29,7 +29,7 @@ public:
 		AActor* SpawnActor(UClass* Class, const FTransform& SpawnTransform, ESpawnActorCollisionHandlingMethod CollisionHandlingOverride, AActor* Owner);
 
 	UFUNCTION(BlueprintCallable, Category = "WorldDirector")
-		bool MoveActorToWorld(AActor* InActor);
+		bool MoveActorToWorld(AActor* InActor, bool bTranslateLocation);
 
 	UFUNCTION(BlueprintCallable, Category = "WorldDirector")
 		void SetWorldOrigin(FIntVector NewOrigin);
