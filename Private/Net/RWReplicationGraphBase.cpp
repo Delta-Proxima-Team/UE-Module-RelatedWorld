@@ -10,18 +10,17 @@ void UReplicationGraphNode_RwDynamicNode::NotifyAddNetworkActor(const FNewReplic
 	FVector GlobalLocation = Location;
 
 	FGlobalActorReplicationInfo& ActorRepInfo = GraphGlobals->GlobalActorReplicationInfoMap->Get(Actor);
-	//ActorRepInfo.WorldLocation = Location;
 
 	URelatedWorld* rWorld = UWorldDirector::GetWorldDirector()->GetRelatedWorldFromActor(Actor);
 
 	if (rWorld != nullptr)
 	{
-		FIntVector rTranslation = rWorld->GetWorldTranslation();
+		const FIntVector rTranslation = rWorld->GetWorldTranslation();
 		GlobalLocation = FRepMovement::RebaseOntoZeroOrigin(Location, Actor);
-		GlobalLocation.X -= rTranslation.X;
-		GlobalLocation.Y -= rTranslation.Y;
-		GlobalLocation.Z -= rTranslation.Z;
-		GlobalLocation = FRepMovement::RebaseOntoLocalOrigin(Location, rWorld->GetWorld()->OriginLocation);
+		GlobalLocation.X += rTranslation.X;
+		GlobalLocation.Y += rTranslation.Y;
+		GlobalLocation.Z += rTranslation.Z;
+		GlobalLocation = FRepMovement::RebaseOntoLocalOrigin(GlobalLocation, rWorld->GetWorld()->OriginLocation);
 	}
 	ActorRepInfo.WorldLocation = GlobalLocation;
 	ActorList.Add(Actor);
