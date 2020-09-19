@@ -34,7 +34,7 @@ ReplicationDriverClassName="/Script/RelatedWorld.RwReplcationGraphBase"
 - Recompile you project
 
 ## Notes
-- I strongly not recommend use built in replication graph, duy it was added only for experimental purpose.
+- I strongly not recommend use built in replication graph, due it was added only for experimental purpose.
 
 ## Simple Usage
 https://cdn.discordapp.com/attachments/644401603088089119/727580647643807855/2020-06-30_20-44-15.png
