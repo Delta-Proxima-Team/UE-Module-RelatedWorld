@@ -41,7 +41,7 @@ public:
 		bool IsNetworkedWorld() const { return bIsNetworkedWorld; }
 
 	UFUNCTION(BlueprintPure, Category = "WorldDirector")
-		FIntVector GetWorldTranslation() const { return WorldLocation; }
+		FORCEINLINE FIntVector GetWorldTranslation() const { return WorldLocation; }
 
 	void Tick(float DeltaSeconds) override;
 	bool IsTickable() const override;

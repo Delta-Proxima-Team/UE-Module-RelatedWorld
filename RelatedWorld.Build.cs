@@ -21,5 +21,10 @@ public class RelatedWorld : ModuleRules
 			"RenderCore",
 			"OnlineSubsystemUtils"
 		});
+
+		PrivateDependencyModuleNames.AddRange(new string[]
+		{
+			"ReplicationGraph"
+		});
 	}
 }

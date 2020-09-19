@@ -23,14 +23,18 @@ ExtraModuleNames.AddRange(new string[] { "RelatedWorld" });
 !NetDriverDefinitions=
 NetDriverDefinitions=(DefName="GameNetDriver",DriverClassName="/Script/RelatedWorld.RwIpNetDriver",DriverClassNameFallback="/Script/RelatedWorld.RwIpNetDriver")
 +NetDriverDefinitions=(DefName="DemoNetDriver",DriverClassName="/Script/Engine.DemoNetDriver",DriverClassNameFallback="/Script/Engine.DemoNetDriver")
+
+[/Script/RelatedWorld.RwIpNetDriver]
+ReplicationDriverClassName="/Script/RelatedWorld.RwReplcationGraphBase"
 ```
 
 - Make sure plugin **OnlineSubsystemUtils** is on
+- Make sure plugin **ReplicationGraph** is on
 - Make sure option **EnableMultiplayerWorldOriginRebasing** is on
 - Recompile you project
 
-## Notes for public version
-- Good idea is a implement ReplicationGraph class for better actors replication from server side to a client side
+## Notes
+- I strongly not recommend use built in replication graph, duy it was added only for experimental purpose.
 
 ## Simple Usage
 https://cdn.discordapp.com/attachments/644401603088089119/727580647643807855/2020-06-30_20-44-15.png
