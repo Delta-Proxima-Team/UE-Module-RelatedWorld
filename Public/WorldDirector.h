@@ -30,7 +30,7 @@ public:
 	 * 
 	 * @param	WorldName				Name of the new world
 	 * @param	WorldTranslation		World translation relative to the permanent world
-	 * @param	IsNetWorld				Should the world replicate actors to conneted clients
+	 * @param	IsNetWorld				Should the world replicate actors to connected clients
 	 * 
 	 */
 	UFUNCTION(BlueprintCallable, Category = "WorldDirector", Meta = (WorldContext = "WorldContextObject"))
@@ -42,7 +42,7 @@ public:
 	 *
 	 * @param	WorldName				Name of the loading map
 	 * @param	WorldTranslation		World translation relative to the permanent world
-	 * @param	IsNetWorld				Should the world replicate actors to conneted clients
+	 * @param	IsNetWorld				Should the world replicate actors to connected clients
 	 * 
 	 */
 	UFUNCTION(BlueprintCallable, Category = "WorldDirector", Meta=(WorldContext="WorldContextObject"))
@@ -54,6 +54,7 @@ public:
 
 	/** 
 	 * Unload related world by name
+	 * 
 	 * @param	WorldName	The world to be unloaded
 	 * 
 	 */
@@ -62,6 +63,7 @@ public:
 
 	/**
 	 * Unload related world by name
+	 * 
 	 * @param	RelatedWorld	The world to be unloaded
 	 * 
 	 */
