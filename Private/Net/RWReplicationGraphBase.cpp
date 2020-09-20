@@ -2,6 +2,7 @@
 
 #include "Net/RWReplicationGraphBase.h"
 #include "WorldDirector.h"
+#include "RelatedWorld.h"
 
 void UReplicationGraphNode_RwDynamicNode::NotifyAddNetworkActor(const FNewReplicatedActorInfo& ActorInfo)
 {
@@ -11,17 +12,13 @@ void UReplicationGraphNode_RwDynamicNode::NotifyAddNetworkActor(const FNewReplic
 
 	FGlobalActorReplicationInfo& ActorRepInfo = GraphGlobals->GlobalActorReplicationInfoMap->Get(Actor);
 
-	URelatedWorld* rWorld = UWorldDirector::GetWorldDirector()->GetRelatedWorldFromActor(Actor);
+	URelatedWorld* rWorld = UWorldDirector::Get()->GetRelatedWorldFromActor(Actor);
 
 	if (rWorld != nullptr)
 	{
-		const FIntVector rTranslation = rWorld->GetWorldTranslation();
-		GlobalLocation = FRepMovement::RebaseOntoZeroOrigin(Location, Actor);
-		GlobalLocation.X += rTranslation.X;
-		GlobalLocation.Y += rTranslation.Y;
-		GlobalLocation.Z += rTranslation.Z;
-		GlobalLocation = FRepMovement::RebaseOntoLocalOrigin(GlobalLocation, rWorld->GetWorld()->OriginLocation);
+		GlobalLocation = URelatedWorldUtils::RelatedWorldLocationToWorldLocation(rWorld, Location);
 	}
+
 	ActorRepInfo.WorldLocation = GlobalLocation;
 	ActorList.Add(Actor);
 }
@@ -41,19 +38,14 @@ void UReplicationGraphNode_RwDynamicNode::PrepareForReplication()
 		FVector Location = Actor->GetActorLocation();
 		FVector GlobalLocation = Location;
 		
-		URelatedWorld* rWorld = UWorldDirector::GetWorldDirector()->GetRelatedWorldFromActor(Actor);
+		URelatedWorld* rWorld = UWorldDirector::Get()->GetRelatedWorldFromActor(Actor);
 
 		if (rWorld != nullptr)
 		{
-			const FIntVector rTranslation = rWorld->GetWorldTranslation();
-			GlobalLocation = FRepMovement::RebaseOntoZeroOrigin(Location, Actor);
-			GlobalLocation.X += rTranslation.X;
-			GlobalLocation.Y += rTranslation.Y;
-			GlobalLocation.Z += rTranslation.Z;
-			GlobalLocation = FRepMovement::RebaseOntoLocalOrigin(GlobalLocation, rWorld->GetWorld()->OriginLocation);
+			GlobalLocation = URelatedWorldUtils::RelatedWorldLocationToWorldLocation(rWorld, Location);
 		}
-		ActorRepInfo.WorldLocation = GlobalLocation;
 
+		ActorRepInfo.WorldLocation = GlobalLocation;
 	}
 }
 

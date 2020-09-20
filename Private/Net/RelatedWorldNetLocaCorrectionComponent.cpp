@@ -4,6 +4,7 @@
 #include "Net/UnrealNetwork.h"
 #include "PhysicsReplication.h"
 #include "WorldDirector.h"
+#include "RelatedWorld.h"
 
 void OnRep_ReplicatedMovement_Hook(UObject* Context, FFrame& TheStack, RESULT_DECL)
 {
@@ -49,7 +50,7 @@ void URelatedWorldNetLocCorrectionComponent::InitializeComponent()
 	if (IsValid(GetOwner()) && !GetOwner()->HasAnyFlags(RF_ClassDefaultObject))
 	{
 		ActorOwner = GetOwner();
-		RelatedWorld = UWorldDirector::GetWorldDirector()->GetRelatedWorldFromActor(ActorOwner);
+		RelatedWorld = UWorldDirector::Get()->GetRelatedWorldFromActor(ActorOwner);
 
 		if (RelatedWorld)
 		{
@@ -94,10 +95,7 @@ void URelatedWorldNetLocCorrectionComponent::OnRep_Initial()
 
 			if ((PrimComp && PrimComp->IsSimulatingPhysics()) || Location == FVector::ZeroVector)
 			{
-				Location.X += RelatedWorldLocation.X;
-				Location.Y += RelatedWorldLocation.Y;
-				Location.Z += RelatedWorldLocation.Z;
-
+				Location = URelatedWorldUtils::CONVERT_RelToWorld(RelatedWorldLocation, Location);
 				RootComponent->SetWorldLocation(Location);
 			}
 		}
@@ -207,9 +205,7 @@ void URelatedWorldNetLocCorrectionComponent::PostNetReceivePhysicState()
 		FRigidBodyState NewState;
 		
 		FVector NewLocation = FRepMovement::RebaseOntoLocalOrigin(LocalRepMovement.Location, ActorOwner);
-		NewLocation.X += RelatedWorldLocation.X;
-		NewLocation.Y += RelatedWorldLocation.Y;
-		NewLocation.Z += RelatedWorldLocation.Z;
+		NewLocation = URelatedWorldUtils::CONVERT_RelToWorld(RelatedWorldLocation, NewLocation);
 
 		NewState.Position = NewLocation;
 		NewState.Quaternion = LocalRepMovement.Rotation.Quaternion();
@@ -226,9 +222,7 @@ void URelatedWorldNetLocCorrectionComponent::PostNetReceiveLocationAndRotation()
 	const FRepMovement& LocalRepMovement = ActorOwner->GetReplicatedMovement();
 
 	FVector NewLocation = FRepMovement::RebaseOntoLocalOrigin(LocalRepMovement.Location, ActorOwner);
-	NewLocation.X += RelatedWorldLocation.X;
-	NewLocation.Y += RelatedWorldLocation.Y;
-	NewLocation.Z += RelatedWorldLocation.Z;
+	NewLocation = URelatedWorldUtils::CONVERT_RelToWorld(RelatedWorldLocation, NewLocation);
 
 	USceneComponent* RootComponent = ActorOwner->GetRootComponent();
 
