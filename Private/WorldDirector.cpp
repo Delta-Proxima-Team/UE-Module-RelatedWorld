@@ -171,8 +171,12 @@ URelatedWorld* UWorldDirector::LoadRelatedWorld(UObject* WorldContextObject, FNa
 
 	if (IsNetWorld)
 	{
+		UNetDriver* SharedNetDriver = WorldContextObject->GetWorld()->GetNetDriver();
 		Context.ActiveNetDrivers = GEngine->GetWorldContextFromWorld(WorldContextObject->GetWorld())->ActiveNetDrivers;
-		Context.World()->NetDriver = WorldContextObject->GetWorld()->NetDriver;
+		Context.World()->SetNetDriver(SharedNetDriver);
+		
+		FLevelCollection* LevelCollection = (FLevelCollection*)Context.World()->GetActiveLevelCollection();
+		LevelCollection->SetNetDriver(SharedNetDriver);
 	}
 	else
 	{
@@ -303,6 +307,11 @@ URelatedWorld* UWorldDirector::GetRelatedWorldFromActor(AActor* InActor) const
 	UWorld* ActorWorld = InActor->GetWorld();
 
 	return Worlds.FindRef(FName(ActorWorld->URL.Map));
+}
+
+URelatedWorld* UWorldDirector::GetRelatedWorldByName(FName WorldName) const
+{
+	return Worlds.FindRef(WorldName);
 }
 
 bool UWorldDirector::MoveActorToWorld(URelatedWorld* World, AActor* InActor, bool bTranslateLocation)

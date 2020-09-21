@@ -94,6 +94,16 @@ public:
 
 	/**
 	 * Returns the related world if the actor is on it or NULL if not
+	 * @return	RelatedWorld	RelatedWorld object of NULL
+	 *
+	 * @param	WorldName			World name
+	 *
+	 */
+	UFUNCTION(BlueprintPure, Category = "WorldDirector")
+		URelatedWorld* GetRelatedWorldByName(FName WorldName) const;
+
+	/**
+	 * Returns the related world if the actor is on it or NULL if not
 	 *
 	 * @param	World					World to move. If NULL then actor will be moved into main world
 	 * @param	InActor					Actor for move
