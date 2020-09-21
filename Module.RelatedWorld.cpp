@@ -4,7 +4,11 @@
 #include "RelatedWorldModuleInterface.h"
 #include "WorldDirector.h"
 
-void OnRep_ReplicatedMovement_Hook(UObject* Context, FFrame& TheStack, RESULT_DECL);
+#include "GameFramework/Character.h"
+
+void HOOK_AActor_OnRep_ReplicatedMovement(UObject* Context, FFrame& Stack, RESULT_DECL);
+
+void HOOK_ACharacter_ClientAdjustPosition(UObject* Context, FFrame& Stack, RESULT_DECL);
 
 class FRelatedWorldModule : public IRelatedWorldModule
 {
@@ -16,8 +20,12 @@ public:
 		WorldDirector->AddToRoot();
 
 		//Setup some hooks on RepNotify events
-		UFunction* FUNC_OnRep_ReplicatedMovement = AActor::StaticClass()->FindFunctionByName(TEXT("OnRep_ReplicatedMovement"));
-		FUNC_OnRep_ReplicatedMovement->SetNativeFunc(&OnRep_ReplicatedMovement_Hook);
+		UFunction* FUNC_AActor_OnRep_ReplicatedMovement = AActor::StaticClass()->FindFunctionByName(TEXT("OnRep_ReplicatedMovement"));
+		FUNC_AActor_OnRep_ReplicatedMovement->SetNativeFunc(&HOOK_AActor_OnRep_ReplicatedMovement);
+
+		//Character Hooks
+		UFunction* FUNC_ACharacter_ClientAdjustPosition = ACharacter::StaticClass()->FindFunctionByName(TEXT("ClientAdjustPosition"));
+		FUNC_ACharacter_ClientAdjustPosition->SetNativeFunc(&HOOK_ACharacter_ClientAdjustPosition);
 	}
 
 	void ShutdownModule()

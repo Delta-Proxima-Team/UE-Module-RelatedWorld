@@ -6,12 +6,16 @@
 #include "WorldDirector.h"
 #include "RelatedWorld.h"
 
-void OnRep_ReplicatedMovement_Hook(UObject* Context, FFrame& TheStack, RESULT_DECL)
+#include "GameFramework/Character.h"
+
+void HOOK_AActor_OnRep_ReplicatedMovement(UObject* Context, FFrame& Stack, RESULT_DECL)
 {
 	AActor* Caller = Cast<AActor>(Context);
 
 	if (Caller != nullptr)
 	{
+		P_FINISH;
+		P_NATIVE_BEGIN;
 		URelatedWorldNetLocCorrectionComponent* HookComp = Cast<URelatedWorldNetLocCorrectionComponent>(Caller->GetComponentByClass(URelatedWorldNetLocCorrectionComponent::StaticClass()));
 
 		if (HookComp != nullptr)
@@ -22,6 +26,28 @@ void OnRep_ReplicatedMovement_Hook(UObject* Context, FFrame& TheStack, RESULT_DE
 		{
 			Caller->OnRep_ReplicatedMovement();
 		}
+		P_NATIVE_END;
+	}
+}
+
+void HOOK_ACharacter_ClientAdjustPosition(UObject* Context, FFrame& Stack, RESULT_DECL)
+{
+	ACharacter* Caller = Cast<ACharacter>(Context);
+
+	if (Caller != nullptr)
+	{
+		P_GET_PROPERTY(FFloatProperty, TimeStamp);
+		P_GET_STRUCT(FVector, NewLoc);
+		P_GET_STRUCT(FVector, NewVel);
+		P_GET_OBJECT(UPrimitiveComponent, NewBase);
+		P_GET_PROPERTY(FNameProperty, NewBaseBoneName);
+		P_GET_PROPERTY(FBoolProperty, bHasBase);
+		P_GET_PROPERTY(FBoolProperty, bBaseRelativePosition);
+		P_GET_PROPERTY(FInt8Property, ServerMovementMode);
+		P_FINISH;
+		P_NATIVE_BEGIN;
+		Caller->ClientAdjustPosition_Implementation(TimeStamp, NewLoc, NewVel, NewBase, NewBaseBoneName, bHasBase, bBaseRelativePosition, ServerMovementMode);
+		P_NATIVE_END;
 	}
 }
 
