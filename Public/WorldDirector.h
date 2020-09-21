@@ -18,7 +18,7 @@ class RELATEDWORLD_API UWorldDirector : public UObject
 
 public:
 	/** Get World Director object */
-	UFUNCTION(BlueprintPure, Category = "WorldDirector", Meta=(DisplayName="GetWorldDirctor"))
+	UFUNCTION(BlueprintPure, Category = "WorldDirector", Meta=(DisplayName="GetWorldDirector"))
 		static UWorldDirector* Get()
 		{
 			return FModuleManager::LoadModuleChecked<IRelatedWorldModule>("RelatedWorld").GetWorldDirector();
@@ -91,6 +91,16 @@ public:
 	 */
 	UFUNCTION(BlueprintPure, Category = "WorldDirector")
 		URelatedWorld* GetRelatedWorldFromActor(AActor* InActor) const;
+
+	/**
+	 * Returns the related world if the actor is on it or NULL if not
+	 *
+	 * @param	World					World to move. If NULL then actor will be moved into main world
+	 * @param	InActor					Actor for move
+	 * @param	bTranslateLocation		Translate current location into target space
+	 */
+	UFUNCTION(BlueprintCallable, Category = "WorldDirector")
+		bool MoveActorToWorld(URelatedWorld* World, AActor* InActor, bool bTranslateLocation);
 
 private:
 	TMap<FName, URelatedWorld*> Worlds;

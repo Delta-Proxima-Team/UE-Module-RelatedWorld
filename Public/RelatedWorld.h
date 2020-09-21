@@ -41,6 +41,36 @@ public:
 		static FVector RelatedWorldLocationToRelatedWorldLocation(class URelatedWorld* From, class URelatedWorld* To, const FVector& Location);
 
 	static FVector CONVERT_RelToRel(const FIntVector& From, const FIntVector& To, const FVector& Location);
+
+//** BEGIN GameplayStatics wrapper
+
+	/** Returns the player controller at the specified player index */
+	UFUNCTION(BlueprintPure, Category = "WorldDirector|Game", meta = (WorldContext = "WorldContextObject", UnsafeDuringActorConstruction = "true"))
+		static class APlayerController* GetPlayerController(const UObject* WorldContextObject, int32 PlayerIndex);
+
+	/** Returns the player controller that has the given controller ID */
+	UFUNCTION(BlueprintPure, Category = "WorldDirector|Game", meta = (WorldContext = "WorldContextObject", UnsafeDuringActorConstruction = "true"))
+		static class APlayerController* GetPlayerControllerFromID(const UObject* WorldContextObject, int32 ControllerID);
+
+	/** Returns the player pawn at the specified player index */
+	UFUNCTION(BlueprintPure, Category = "WorldDirector|Game", meta = (WorldContext = "WorldContextObject", UnsafeDuringActorConstruction = "true"))
+		static class APawn* GetPlayerPawn(const UObject* WorldContextObject, int32 PlayerIndex);
+
+	/** Returns the player character (NULL if the player pawn doesn't exist OR is not a character) at the specified player index */
+	UFUNCTION(BlueprintPure, Category = "WorldDirector|Game", meta = (WorldContext = "WorldContextObject", UnsafeDuringActorConstruction = "true"))
+		static class ACharacter* GetPlayerCharacter(const UObject* WorldContextObject, int32 PlayerIndex);
+
+	/** Returns the player's camera manager for the specified player index */
+	UFUNCTION(BlueprintPure, Category = "WorldDirector|Game", meta = (WorldContext = "WorldContextObject", UnsafeDuringActorConstruction = "true"))
+		static class APlayerCameraManager* GetPlayerCameraManager(const UObject* WorldContextObject, int32 PlayerIndex);
+
+	/** Returns the current GameModeBase or Null if it can't be retrieved, such as on the client */
+	UFUNCTION(BlueprintPure, Category = "WorldDirector|Game", meta = (WorldContext = "WorldContextObject"))
+		static class AGameModeBase* GetGameMode(const UObject* WorldContextObject);
+
+	/** Returns the current GameStateBase or Null if it can't be retrieved */
+	UFUNCTION(BlueprintPure, Category = "WorldDirector|Game", meta = (WorldContext = "WorldContextObject"))
+		static class AGameStateBase* GetGameState(const UObject* WorldContextObject);
 };
 
 UCLASS(BlueprintType)
@@ -59,9 +89,6 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "WorldDirector")
 		AActor* SpawnActor(UClass* Class, const FTransform& SpawnTransform, ESpawnActorCollisionHandlingMethod CollisionHandlingOverride, AActor* Owner);
-
-	UFUNCTION(BlueprintCallable, Category = "WorldDirector")
-		bool MoveActorToWorld(AActor* InActor, bool bTranslateLocation);
 
 	UFUNCTION(BlueprintCallable, Category = "WorldDirector")
 		void SetWorldOrigin(FIntVector NewOrigin);

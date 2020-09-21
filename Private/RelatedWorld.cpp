@@ -8,6 +8,7 @@
 #include "InGamePerformanceTracker.h"
 #include "TickTaskManagerInterface.h"
 #include "Engine/WorldComposition.h"
+#include "Kismet/GameplayStatics.h"
 #include "Components/SceneCaptureComponent.h"
 
 FVector URelatedWorldUtils::ActorLocationToWorldLocation(AActor* InActor)
@@ -70,6 +71,55 @@ FVector URelatedWorldUtils::CONVERT_RelToRel(const FIntVector& From, const FIntV
 		Location.Y + From.Y - To.Y,
 		Location.Z + From.Z - To.Z
 	);
+}
+
+APlayerController* URelatedWorldUtils::GetPlayerController(const UObject* WorldContextObject, int32 PlayerIndex)
+{
+	UGameInstance* GameInstance = WorldContextObject->GetWorld()->GetGameInstance();
+
+	return UGameplayStatics::GetPlayerController(GameInstance, PlayerIndex);
+}
+
+APlayerController* URelatedWorldUtils::GetPlayerControllerFromID(const UObject* WorldContextObject, int32 ControllerID)
+{
+	UGameInstance* GameInstance = WorldContextObject->GetWorld()->GetGameInstance();
+
+	return UGameplayStatics::GetPlayerControllerFromID(GameInstance, ControllerID);
+}
+
+APawn* URelatedWorldUtils::GetPlayerPawn(const UObject* WorldContextObject, int32 PlayerIndex)
+{
+	UGameInstance* GameInstance = WorldContextObject->GetWorld()->GetGameInstance();
+
+	return UGameplayStatics::GetPlayerPawn(GameInstance, PlayerIndex);
+}
+
+ACharacter* URelatedWorldUtils::GetPlayerCharacter(const UObject* WorldContextObject, int32 PlayerIndex)
+{
+	UGameInstance* GameInstance = WorldContextObject->GetWorld()->GetGameInstance();
+
+	return UGameplayStatics::GetPlayerCharacter(GameInstance, PlayerIndex);
+}
+
+APlayerCameraManager* URelatedWorldUtils::GetPlayerCameraManager(const UObject* WorldContextObject, int32 PlayerIndex)
+{
+	UGameInstance* GameInstance = WorldContextObject->GetWorld()->GetGameInstance();
+
+	return UGameplayStatics::GetPlayerCameraManager(GameInstance, PlayerIndex);
+}
+
+AGameModeBase* URelatedWorldUtils::GetGameMode(const UObject* WorldContextObject)
+{
+	UGameInstance* GameInstance = WorldContextObject->GetWorld()->GetGameInstance();
+
+	return UGameplayStatics::GetGameMode(GameInstance);
+}
+
+AGameStateBase* URelatedWorldUtils::GetGameState(const UObject* WorldContextObject)
+{
+	UGameInstance* GameInstance = WorldContextObject->GetWorld()->GetGameInstance();
+
+	return UGameplayStatics::GetGameState(GameInstance);
 }
 
 bool URelatedWorld::IsTickable() const
@@ -359,65 +409,6 @@ AActor* URelatedWorld::SpawnActor(UClass* Class, const FTransform& SpawnTransfor
 	AActor* SpawnedActor = WorldToSpawn->SpawnActor<AActor>(Class, SpawnTransform, SpawnParams);
 
 	return SpawnedActor;
-}
-
-bool URelatedWorld::MoveActorToWorld(AActor* InActor, bool bTranslateLocation)
-{
-	if (!IsValid(InActor) || InActor->IsPendingKill())
-	{
-		return false;
-	}
-
-	UWorldDirector* Director = GetTypedOuter<UWorldDirector>();
-	URelatedWorld* OldRWorld = Director->GetRelatedWorldFromActor(InActor);
-
-	if (OldRWorld != nullptr)
-	{
-		if (!(bIsNetworkedWorld & OldRWorld->bIsNetworkedWorld))
-		{
-			if (OldRWorld->bIsNetworkedWorld)
-			{
-				if (PersistentWorld->NetDriver->ShouldClientDestroyActor(InActor))
-				{
-					PersistentWorld->NetDriver->NotifyActorDestroyed(InActor);
-				}
-				PersistentWorld->NetDriver->RemoveNetworkActor(InActor);
-			}
-
-			if (bIsNetworkedWorld)
-			{
-				PersistentWorld->NetDriver->AddNetworkActor(InActor);
-			}
-		}
-	}
-
-	//Translate coordinates into new one
-	USceneComponent* RootComponent = InActor->GetRootComponent();
-
-	if (RootComponent)
-	{
-		FIntVector OldTranslation = OldRWorld != nullptr ? OldRWorld->GetWorldTranslation() : FIntVector::ZeroValue;
-
-		FVector Location = FRepMovement::RebaseOntoZeroOrigin(RootComponent->GetComponentLocation(), RootComponent);
-
-		if (bTranslateLocation)
-		{
-			Location = URelatedWorldUtils::CONVERT_RelToRel(OldTranslation, WorldTranslation, Location);
-		}
-
-		FVector NewLocation = FRepMovement::RebaseOntoLocalOrigin(Location, Context()->World()->OriginLocation);
-
-		RootComponent->SetWorldLocation(NewLocation);
-	}
-
-	URelatedWorldNetLocCorrectionComponent* CorrectionComp = Cast<URelatedWorldNetLocCorrectionComponent>(InActor->GetComponentByClass(URelatedWorldNetLocCorrectionComponent::StaticClass()));
-
-	if (CorrectionComp != nullptr)
-	{
-		CorrectionComp->NotifyWorldChanged(this);
-	}
-
-	return InActor->Rename(nullptr, Context()->World()->PersistentLevel);
 }
 
 void URelatedWorld::SetWorldOrigin(FIntVector NewOrigin)

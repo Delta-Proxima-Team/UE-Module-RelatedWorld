@@ -2,6 +2,7 @@
 
 #include "WorldDirector.h"
 #include "RelatedWorld.h"
+#include "Net/RelatedWorldNetLocCorrectionComponent.h"
 
 #include "EngineUtils.h"
 #include "ShaderCompiler.h"
@@ -302,4 +303,67 @@ URelatedWorld* UWorldDirector::GetRelatedWorldFromActor(AActor* InActor) const
 	UWorld* ActorWorld = InActor->GetWorld();
 
 	return Worlds.FindRef(FName(ActorWorld->URL.Map));
+}
+
+bool UWorldDirector::MoveActorToWorld(URelatedWorld* World, AActor* InActor, bool bTranslateLocation)
+{
+	if (!IsValid(InActor) || InActor->IsPendingKill())
+	{
+		return false;
+	}
+
+	URelatedWorld* OldRWorld = GetRelatedWorldFromActor(InActor);
+	UWorld* MainWorld = OldRWorld ? OldRWorld->GetWorld() : InActor->GetWorld();
+	
+	bool bNet = ((World != nullptr && World->IsNetworkedWorld()) || MainWorld->NetDriver != nullptr);
+	bool bOldNet = ((OldRWorld != nullptr && OldRWorld->IsNetworkedWorld()) || MainWorld->NetDriver != nullptr);
+
+	if (!(bNet & bOldNet))
+	{
+		if (bOldNet)
+		{
+			if (MainWorld->NetDriver->ShouldClientDestroyActor(InActor))
+			{
+				MainWorld->NetDriver->NotifyActorDestroyed(InActor);
+			}
+			
+			MainWorld->NetDriver->RemoveNetworkActor(InActor);
+		}
+
+		if (bNet)
+		{
+			MainWorld->NetDriver->AddNetworkActor(InActor);
+		}
+	}
+
+	//Translate coordinates into new one
+	USceneComponent* RootComponent = InActor->GetRootComponent();
+
+	if (RootComponent)
+	{
+		FIntVector OldTranslation = OldRWorld != nullptr ? OldRWorld->GetWorldTranslation() : FIntVector::ZeroValue;
+		FIntVector NewTranslation = World != nullptr ? World->GetWorldTranslation() : FIntVector::ZeroValue;
+
+		FVector Location = FRepMovement::RebaseOntoZeroOrigin(RootComponent->GetComponentLocation(), RootComponent);
+
+		if (bTranslateLocation)
+		{
+			Location = URelatedWorldUtils::CONVERT_RelToRel(OldTranslation, NewTranslation, Location);
+		}
+
+		FIntVector Origin = World != nullptr ? World->Context()->World()->OriginLocation : MainWorld->OriginLocation;
+		FVector NewLocation = FRepMovement::RebaseOntoLocalOrigin(Location, Origin);
+
+		RootComponent->SetWorldLocation(NewLocation);
+	}
+
+	URelatedWorldNetLocCorrectionComponent* CorrectionComp = Cast<URelatedWorldNetLocCorrectionComponent>(InActor->GetComponentByClass(URelatedWorldNetLocCorrectionComponent::StaticClass()));
+
+	if (CorrectionComp != nullptr)
+	{
+		CorrectionComp->NotifyWorldChanged(World);
+	}
+
+	ULevel* NewOuter = World != nullptr ? World->Context()->World()->PersistentLevel : MainWorld->PersistentLevel;
+	return InActor->Rename(nullptr, NewOuter);
 }
