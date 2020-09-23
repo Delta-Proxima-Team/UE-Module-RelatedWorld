@@ -8,6 +8,7 @@
 
 void HOOK_AActor_OnRep_ReplicatedMovement(UObject* Context, FFrame& Stack, RESULT_DECL);
 
+void HOOK_ACharacter_ServerMoveNoBase(UObject* Context, FFrame& Stack, RESULT_DECL);
 void HOOK_ACharacter_ClientAdjustPosition(UObject* Context, FFrame& Stack, RESULT_DECL);
 
 class FRelatedWorldModule : public IRelatedWorldModule
@@ -24,6 +25,9 @@ public:
 		FUNC_AActor_OnRep_ReplicatedMovement->SetNativeFunc(&HOOK_AActor_OnRep_ReplicatedMovement);
 
 		//Character Hooks
+		UFunction* FUNC_ACharacter_ServerMoveNoBase = ACharacter::StaticClass()->FindFunctionByName(TEXT("ServerMoveNoBase"));
+		FUNC_ACharacter_ServerMoveNoBase->SetNativeFunc(&HOOK_ACharacter_ServerMoveNoBase);
+
 		UFunction* FUNC_ACharacter_ClientAdjustPosition = ACharacter::StaticClass()->FindFunctionByName(TEXT("ClientAdjustPosition"));
 		FUNC_ACharacter_ClientAdjustPosition->SetNativeFunc(&HOOK_ACharacter_ClientAdjustPosition);
 	}

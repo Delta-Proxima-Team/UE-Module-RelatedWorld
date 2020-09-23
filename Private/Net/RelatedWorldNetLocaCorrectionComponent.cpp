@@ -30,6 +30,41 @@ void HOOK_AActor_OnRep_ReplicatedMovement(UObject* Context, FFrame& Stack, RESUL
 	}
 }
 
+void HOOK_ACharacter_ServerMoveNoBase(UObject* Context, FFrame& Stack, RESULT_DECL)
+{
+	ACharacter* Caller = Cast<ACharacter>(Context);
+
+	if (Caller != nullptr)
+	{
+		P_GET_PROPERTY(FFloatProperty, TimeStamp);
+		P_GET_STRUCT(FVector_NetQuantize10, InAccel);
+		P_GET_STRUCT(FVector_NetQuantize100, ClientLoc);
+		P_GET_PROPERTY(FByteProperty, CompressedMoveFlags);
+		P_GET_PROPERTY(FByteProperty, ClientRoll);
+		P_GET_PROPERTY(FUInt32Property, View);
+		P_GET_PROPERTY(FByteProperty, ClientMovementMode);
+		P_FINISH;
+		P_NATIVE_BEGIN;
+
+		if (!Caller->ServerMoveNoBase_Validate(TimeStamp, InAccel, ClientLoc, CompressedMoveFlags, ClientRoll, View, ClientMovementMode))
+		{
+			RPC_ValidateFailed(TEXT("Server_Test_Validate"));
+			return;
+		}
+
+		URelatedWorldNetLocCorrectionComponent* HookComp = Cast<URelatedWorldNetLocCorrectionComponent>(Caller->GetComponentByClass(URelatedWorldNetLocCorrectionComponent::StaticClass()));
+
+		if (HookComp != nullptr)
+		{
+			HookComp->ServerMoveNoBase(ClientLoc);
+		}
+
+		Caller->ServerMoveNoBase_Implementation(TimeStamp, InAccel, ClientLoc, CompressedMoveFlags, ClientRoll, View, ClientMovementMode);
+
+		P_NATIVE_END;
+	}
+}
+
 void HOOK_ACharacter_ClientAdjustPosition(UObject* Context, FFrame& Stack, RESULT_DECL)
 {
 	ACharacter* Caller = Cast<ACharacter>(Context);
@@ -43,9 +78,16 @@ void HOOK_ACharacter_ClientAdjustPosition(UObject* Context, FFrame& Stack, RESUL
 		P_GET_PROPERTY(FNameProperty, NewBaseBoneName);
 		P_GET_PROPERTY(FBoolProperty, bHasBase);
 		P_GET_PROPERTY(FBoolProperty, bBaseRelativePosition);
-		P_GET_PROPERTY(FInt8Property, ServerMovementMode);
+		P_GET_PROPERTY(FByteProperty, ServerMovementMode);
 		P_FINISH;
 		P_NATIVE_BEGIN;
+		URelatedWorldNetLocCorrectionComponent* HookComp = Cast<URelatedWorldNetLocCorrectionComponent>(Caller->GetComponentByClass(URelatedWorldNetLocCorrectionComponent::StaticClass()));
+
+		if (HookComp != nullptr)
+		{
+			HookComp->ClientAdjustPosition(NewLoc, bBaseRelativePosition);
+		}
+
 		Caller->ClientAdjustPosition_Implementation(TimeStamp, NewLoc, NewVel, NewBase, NewBaseBoneName, bHasBase, bBaseRelativePosition, ServerMovementMode);
 		P_NATIVE_END;
 	}
@@ -131,6 +173,7 @@ void URelatedWorldNetLocCorrectionComponent::OnRep_Initial()
 void URelatedWorldNetLocCorrectionComponent::OnRep_RelatedWorldLocation()
 {
 	//Recalculate client position
+	OnWorldLocationChanged.Broadcast(RelatedWorldLocation);
 	OnRep_ReplicatedMovement();
 }
 
@@ -256,6 +299,16 @@ void URelatedWorldNetLocCorrectionComponent::PostNetReceiveLocationAndRotation()
 	{
 		ActorOwner->SetActorLocationAndRotation(NewLocation, LocalRepMovement.Rotation, /*bSweep=*/ false);
 	}
+}
+
+void URelatedWorldNetLocCorrectionComponent::ServerMoveNoBase(FVector& ClientLoc)
+{
+	ClientLoc = URelatedWorldUtils::CONVERT_WorldToRel(RelatedWorldLocation, ClientLoc);
+}
+
+void URelatedWorldNetLocCorrectionComponent::ClientAdjustPosition(FVector& NewLoc, bool bBaseRelativePosition)
+{
+	NewLoc = URelatedWorldUtils::CONVERT_RelToWorld(RelatedWorldLocation, NewLoc);
 }
 
 void URelatedWorldNetLocCorrectionComponent::NotifyWorldChanged(URelatedWorld* NewWorld)
