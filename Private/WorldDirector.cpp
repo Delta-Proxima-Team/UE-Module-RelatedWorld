@@ -8,6 +8,7 @@
 #include "ShaderCompiler.h"
 #include "Kismet/GameplayStatics.h"
 #include "Engine/LevelStreaming.h"
+#include "GameFramework/Pawn.h"
 
 DEFINE_LOG_CATEGORY(LogWorldDirector);
 

@@ -11,6 +11,8 @@ void HOOK_AActor_OnRep_ReplicatedMovement(UObject* Context, FFrame& Stack, RESUL
 void HOOK_ACharacter_ServerMoveNoBase(UObject* Context, FFrame& Stack, RESULT_DECL);
 void HOOK_ACharacter_ClientAdjustPosition(UObject* Context, FFrame& Stack, RESULT_DECL);
 
+void HOOK_APlayerController_ServerUpdateCamera(UObject* Context, FFrame& Stack, RESULT_DECL);
+
 class FRelatedWorldModule : public IRelatedWorldModule
 {
 public:
@@ -30,6 +32,11 @@ public:
 
 		UFunction* FUNC_ACharacter_ClientAdjustPosition = ACharacter::StaticClass()->FindFunctionByName(TEXT("ClientAdjustPosition"));
 		FUNC_ACharacter_ClientAdjustPosition->SetNativeFunc(&HOOK_ACharacter_ClientAdjustPosition);
+
+		//PlayerController Hookds
+		UFunction* FUNC_APlayerController_ServerUpdateCamera = APlayerController::StaticClass()->FindFunctionByName(TEXT("ServerUpdateCamera"));
+		FUNC_APlayerController_ServerUpdateCamera->FunctionFlags |= FUNC_Static;
+		FUNC_APlayerController_ServerUpdateCamera->SetNativeFunc(&HOOK_APlayerController_ServerUpdateCamera);
 	}
 
 	void ShutdownModule()

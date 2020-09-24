@@ -41,6 +41,13 @@ public:
 	UFUNCTION()
 		void OnRep_Initial();
 
+	UFUNCTION()
+		void PreRPC_ServerUpdateCamera(APlayerController* Context, FVector_NetQuantize& CamLoc, int32 CamPitchAndYaw);
+
+	UFUNCTION(Server, UnReliable, WithValidation)
+		void ServerUpdateCamera(APlayerController* Context, const FVector_NetQuantize& CamLoc, int32 CamPitchAndYaw);
+		
+
 private:
 	void SyncReplicatedPhysicsSimulation();
 	void PostNetReceivePhysicState();

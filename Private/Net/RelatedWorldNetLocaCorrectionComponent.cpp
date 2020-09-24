@@ -93,6 +93,28 @@ void HOOK_ACharacter_ClientAdjustPosition(UObject* Context, FFrame& Stack, RESUL
 	}
 }
 
+void HOOK_APlayerController_ServerUpdateCamera(UObject* Context, FFrame& Stack, RESULT_DECL)
+{
+	APlayerController* Caller = Cast<APlayerController>(Context);
+
+	if (Caller != nullptr)
+	{
+		P_GET_STRUCT(FVector_NetQuantize, CamLoc);
+		P_GET_PROPERTY(FIntProperty, CamPitchAndYaw);
+		P_FINISH;
+		P_NATIVE_BEGIN;
+		URelatedWorldNetLocCorrectionComponent* HookComp = Cast<URelatedWorldNetLocCorrectionComponent>(Caller->GetPawn()->GetComponentByClass(URelatedWorldNetLocCorrectionComponent::StaticClass()));
+
+		if (HookComp != nullptr)
+		{
+			HookComp->PreRPC_ServerUpdateCamera(Caller, CamLoc, CamPitchAndYaw);
+			HookComp->ServerUpdateCamera(Caller, CamLoc, CamPitchAndYaw);
+		}
+
+		P_NATIVE_END;
+	}
+}
+
 URelatedWorldNetLocCorrectionComponent::URelatedWorldNetLocCorrectionComponent()
 {
 	bInitialReplication = false;
@@ -320,4 +342,20 @@ void URelatedWorldNetLocCorrectionComponent::NotifyWorldChanged(URelatedWorld* N
 void URelatedWorldNetLocCorrectionComponent::NotifyWorldLocationChanged(const FIntVector& NewWorldLocation)
 {
 	RelatedWorldLocation = NewWorldLocation;
+}
+
+void URelatedWorldNetLocCorrectionComponent::PreRPC_ServerUpdateCamera(APlayerController* Context, FVector_NetQuantize& CamLoc, int32 CamPitchAndYaw)
+{
+	CamLoc = URelatedWorldUtils::CONVERT_WorldToRel(RelatedWorldLocation, CamLoc);
+}
+
+bool URelatedWorldNetLocCorrectionComponent::ServerUpdateCamera_Validate(APlayerController* Context, const FVector_NetQuantize& CamLoc, int32 CamPitchAndYaw)
+{
+	return true;
+}
+
+void URelatedWorldNetLocCorrectionComponent::ServerUpdateCamera_Implementation(APlayerController* Context, const FVector_NetQuantize& CamLoc, int32 CamPitchAndYaw)
+{
+	FVector WorldCamLoc = URelatedWorldUtils::CONVERT_RelToWorld(RelatedWorldLocation, CamLoc);
+	Context->ServerUpdateCamera_Implementation(WorldCamLoc, CamPitchAndYaw);
 }
