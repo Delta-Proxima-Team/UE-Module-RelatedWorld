@@ -35,6 +35,7 @@ ReplicationDriverClassName="/Script/RelatedWorld.RwReplcationGraphBase"
 
 ## Notes
 - I strongly not recommend use built in replication graph, due it was added only for experimental purpose.
+- Unreal Engine 4.26 are not supported for now.
 
 ## Simple Usage
 https://cdn.discordapp.com/attachments/644401603088089119/727580647643807855/2020-06-30_20-44-15.png
