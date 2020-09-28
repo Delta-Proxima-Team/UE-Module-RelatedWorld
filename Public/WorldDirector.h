@@ -93,8 +93,8 @@ public:
 		URelatedWorld* GetRelatedWorldFromActor(AActor* InActor) const;
 
 	/**
-	 * Returns the related world if the actor is on it or NULL if not
-	 * @return	RelatedWorld	RelatedWorld object of NULL
+	 * Returns the related world if world with giving name are loaded
+	 * @return	RelatedWorld		RelatedWorld object of NULL
 	 *
 	 * @param	WorldName			World name
 	 *

@@ -76,31 +76,46 @@ public:
 UCLASS(BlueprintType)
 class RELATEDWORLD_API URelatedWorld : public UObject, public FTickableGameObject
 {
+	friend class UWorldDirector;
 	GENERATED_BODY()
 
 public:
-	void SetNetworked(bool bNetworked) { bIsNetworkedWorld = bNetworked; }
-	void SetPersistentWorld(UWorld* World) { PersistentWorld = World; }
-
 	void HandleBeginPlay();
 
-	void SetContext(FWorldContext* Context) { _Context = Context; }
-	FWorldContext* Context() const { return _Context; }
+	FORCEINLINE FWorldContext* Context() const { return _Context; }
 
+	/** Returns true if the world support networking */
+	UFUNCTION(BlueprintPure, Category = "WorldDirector")
+		FORCEINLINE bool IsNetworkedWorld() const { return bIsNetworkedWorld; }
+
+	/** Returns the current translation of the world */
+	UFUNCTION(BlueprintPure, Category = "WorldDirector")
+		FORCEINLINE FIntVector GetWorldTranslation() const { return WorldTranslation; }
+
+	/**
+	 * Spawn Actors with given transform
+	 * @return	Actor that just spawned
+	 *
+	 * @param	Class								Class to Spawn
+	 * @param	SpawnTransform						World Transform to spawn on
+	 * @param	CollisionHandlingOverride			Specifies how to handle collisions at the spawn spot
+	 * @param	Owner								Actors owner
+	 *
+	 */
 	UFUNCTION(BlueprintCallable, Category = "WorldDirector")
 		AActor* SpawnActor(UClass* Class, const FTransform& SpawnTransform, ESpawnActorCollisionHandlingMethod CollisionHandlingOverride, AActor* Owner);
 
+	/** Translate world origin to specified position  */
 	UFUNCTION(BlueprintCallable, Category = "WorldDirector")
 		void SetWorldOrigin(FIntVector NewOrigin);
 
+	/** Translate world to specified position  */
 	UFUNCTION(BlueprintCallable, Category = "WorldDirector")
 		void TranslateWorld(FIntVector NewTranslation);
-
-	UFUNCTION(BlueprintPure, Category = "WorldDirector")
-		bool IsNetworkedWorld() const { return bIsNetworkedWorld; }
-
-	UFUNCTION(BlueprintPure, Category = "WorldDirector")
-		FORCEINLINE FIntVector GetWorldTranslation() const { return WorldTranslation; }
+private:
+	void SetContext(FWorldContext* Context) { _Context = Context; }
+	void SetNetworked(bool bNetworked) { bIsNetworkedWorld = bNetworked; }
+	void SetPersistentWorld(UWorld* World) { PersistentWorld = World; }
 
 /** BEGIN FTickableGameObject Interface **/
 public:
@@ -123,5 +138,4 @@ private:
 	UWorld* PersistentWorld;
 	bool bIsNetworkedWorld;
 	FIntVector WorldTranslation;
-
 };
