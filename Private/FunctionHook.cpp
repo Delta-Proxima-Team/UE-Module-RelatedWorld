@@ -147,6 +147,7 @@ void URelatedLocationComponent::APlayerController_ServerUpdateCamera(FVector_Net
 	
 	FIntVector Rebase = WorldTranslation - GetWorld()->OriginLocation;
 	FVector CameraLocation = URelatedWorldUtils::CONVERT_WorldToRel(Rebase, POV.Location);
+	Server_AplayerController_ServerUpdateCamera(CameraLocation, CamPitchAndYaw);
 }
 
 bool URelatedLocationComponent::Server_AplayerController_ServerUpdateCamera_Validate(FVector_NetQuantize CamLoc, int32 CamPitchAndYaw)
