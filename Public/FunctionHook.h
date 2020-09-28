@@ -27,7 +27,12 @@ struct FHOOK_##Class##_##Func \
 }; \
 FHOOK_##Class##_##Func Hook_##Class##_##Func##_Struct
 
-#define IMPLEMENT_UFUNCTION_HOOK(Class, Func) void HOOK_##Class##_##Func##_Implementation(UObject* Context, FFrame& Stack, RESULT_DECL)
+#define IMPLEMENT_UFUNCTION_HOOK(Class, Func) void HOOK_##Class##_##Func##_Implementation(UObject* Context, FFrame& Stack, RESULT_DECL) \
+{ \
+	Class* p_this = CastChecked<Class>(Context);
+
+#define END_UFUNCTION_HOOK }
+	
 
 #define FLAGS_UFUNCTION_HOOK(Class, Func, Flags) Hook_##Class##_##Func##_Struct.HookFlags |= Flags
 

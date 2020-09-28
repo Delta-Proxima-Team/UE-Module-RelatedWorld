@@ -11,110 +11,94 @@
 
 IMPLEMENT_UFUNCTION_HOOK(AActor, OnRep_ReplicatedMovement)
 {
-	AActor* Caller = Cast<AActor>(P_THIS_OBJECT);
+	P_FINISH;
+	P_NATIVE_BEGIN;
+		URelatedWorldNetLocCorrectionComponent* HookComp = Cast<URelatedWorldNetLocCorrectionComponent>(p_this->GetComponentByClass(URelatedWorldNetLocCorrectionComponent::StaticClass()));
 
-	if (Caller != nullptr)
+	if (HookComp != nullptr)
 	{
-		P_FINISH;
-		P_NATIVE_BEGIN;
-		URelatedWorldNetLocCorrectionComponent* HookComp = Cast<URelatedWorldNetLocCorrectionComponent>(Caller->GetComponentByClass(URelatedWorldNetLocCorrectionComponent::StaticClass()));
-
-		if (HookComp != nullptr)
-		{
-			HookComp->OnRep_ReplicatedMovement();
-		}
-		else
-		{
-			Caller->OnRep_ReplicatedMovement();
-		}
-		P_NATIVE_END;
+		HookComp->OnRep_ReplicatedMovement();
 	}
+	else
+	{
+		p_this->OnRep_ReplicatedMovement();
+	}
+	P_NATIVE_END;
 }
+END_UFUNCTION_HOOK
 
 IMPLEMENT_UFUNCTION_HOOK(ACharacter, ServerMoveNoBase)
 {
-	ACharacter* Caller = Cast<ACharacter>(P_THIS_OBJECT);
+	P_GET_PROPERTY(FFloatProperty, TimeStamp);
+	P_GET_STRUCT(FVector_NetQuantize10, InAccel);
+	P_GET_STRUCT(FVector_NetQuantize100, ClientLoc);
+	P_GET_PROPERTY(FByteProperty, CompressedMoveFlags);
+	P_GET_PROPERTY(FByteProperty, ClientRoll);
+	P_GET_PROPERTY(FUInt32Property, View);
+	P_GET_PROPERTY(FByteProperty, ClientMovementMode);
+	P_FINISH;
+	P_NATIVE_BEGIN;
 
-	if (Caller != nullptr)
+	if (!p_this->ServerMoveNoBase_Validate(TimeStamp, InAccel, ClientLoc, CompressedMoveFlags, ClientRoll, View, ClientMovementMode))
 	{
-		P_GET_PROPERTY(FFloatProperty, TimeStamp);
-		P_GET_STRUCT(FVector_NetQuantize10, InAccel);
-		P_GET_STRUCT(FVector_NetQuantize100, ClientLoc);
-		P_GET_PROPERTY(FByteProperty, CompressedMoveFlags);
-		P_GET_PROPERTY(FByteProperty, ClientRoll);
-		P_GET_PROPERTY(FUInt32Property, View);
-		P_GET_PROPERTY(FByteProperty, ClientMovementMode);
-		P_FINISH;
-		P_NATIVE_BEGIN;
-
-		if (!Caller->ServerMoveNoBase_Validate(TimeStamp, InAccel, ClientLoc, CompressedMoveFlags, ClientRoll, View, ClientMovementMode))
-		{
-			RPC_ValidateFailed(TEXT("Server_Test_Validate"));
-			return;
-		}
-
-		URelatedWorldNetLocCorrectionComponent* HookComp = Cast<URelatedWorldNetLocCorrectionComponent>(Caller->GetComponentByClass(URelatedWorldNetLocCorrectionComponent::StaticClass()));
-
-		if (HookComp != nullptr)
-		{
-			HookComp->ServerMoveNoBase(ClientLoc);
-		}
-
-		Caller->ServerMoveNoBase_Implementation(TimeStamp, InAccel, ClientLoc, CompressedMoveFlags, ClientRoll, View, ClientMovementMode);
-
-		P_NATIVE_END;
+		RPC_ValidateFailed(TEXT("Server_Test_Validate"));
+		return;
 	}
+
+	URelatedWorldNetLocCorrectionComponent* HookComp = Cast<URelatedWorldNetLocCorrectionComponent>(p_this->GetComponentByClass(URelatedWorldNetLocCorrectionComponent::StaticClass()));
+
+	if (HookComp != nullptr)
+	{
+		HookComp->ServerMoveNoBase(ClientLoc);
+	}
+
+	p_this->ServerMoveNoBase_Implementation(TimeStamp, InAccel, ClientLoc, CompressedMoveFlags, ClientRoll, View, ClientMovementMode);
+
+	P_NATIVE_END;
 }
+END_UFUNCTION_HOOK
 
 IMPLEMENT_UFUNCTION_HOOK(ACharacter, ClientAdjustPosition)
 {
-	ACharacter* Caller = Cast<ACharacter>(P_THIS_OBJECT);
+	P_GET_PROPERTY(FFloatProperty, TimeStamp);
+	P_GET_STRUCT(FVector, NewLoc);
+	P_GET_STRUCT(FVector, NewVel);
+	P_GET_OBJECT(UPrimitiveComponent, NewBase);
+	P_GET_PROPERTY(FNameProperty, NewBaseBoneName);
+	P_GET_PROPERTY(FBoolProperty, bHasBase);
+	P_GET_PROPERTY(FBoolProperty, bBaseRelativePosition);
+	P_GET_PROPERTY(FByteProperty, ServerMovementMode);
+	P_FINISH;
+	P_NATIVE_BEGIN;
+	URelatedWorldNetLocCorrectionComponent* HookComp = Cast<URelatedWorldNetLocCorrectionComponent>(p_this->GetComponentByClass(URelatedWorldNetLocCorrectionComponent::StaticClass()));
 
-	if (Caller != nullptr)
+	if (HookComp != nullptr)
 	{
-		P_GET_PROPERTY(FFloatProperty, TimeStamp);
-		P_GET_STRUCT(FVector, NewLoc);
-		P_GET_STRUCT(FVector, NewVel);
-		P_GET_OBJECT(UPrimitiveComponent, NewBase);
-		P_GET_PROPERTY(FNameProperty, NewBaseBoneName);
-		P_GET_PROPERTY(FBoolProperty, bHasBase);
-		P_GET_PROPERTY(FBoolProperty, bBaseRelativePosition);
-		P_GET_PROPERTY(FByteProperty, ServerMovementMode);
-		P_FINISH;
-		P_NATIVE_BEGIN;
-		URelatedWorldNetLocCorrectionComponent* HookComp = Cast<URelatedWorldNetLocCorrectionComponent>(Caller->GetComponentByClass(URelatedWorldNetLocCorrectionComponent::StaticClass()));
-
-		if (HookComp != nullptr)
-		{
-			HookComp->ClientAdjustPosition(NewLoc, bBaseRelativePosition);
-		}
-
-		Caller->ClientAdjustPosition_Implementation(TimeStamp, NewLoc, NewVel, NewBase, NewBaseBoneName, bHasBase, bBaseRelativePosition, ServerMovementMode);
-		P_NATIVE_END;
+		HookComp->ClientAdjustPosition(NewLoc, bBaseRelativePosition);
 	}
+
+	p_this->ClientAdjustPosition_Implementation(TimeStamp, NewLoc, NewVel, NewBase, NewBaseBoneName, bHasBase, bBaseRelativePosition, ServerMovementMode);
+	P_NATIVE_END;
 }
+END_UFUNCTION_HOOK
 
 IMPLEMENT_UFUNCTION_HOOK(APlayerController, ServerUpdateCamera)
 {
-	APlayerController* Caller = Cast<APlayerController>(P_THIS_OBJECT);
+	P_GET_STRUCT(FVector_NetQuantize, CamLoc);
+	P_GET_PROPERTY(FIntProperty, CamPitchAndYaw);
+	P_FINISH;
+	P_NATIVE_BEGIN;
+	URelatedWorldNetLocCorrectionComponent* HookComp = Cast<URelatedWorldNetLocCorrectionComponent>(p_this->GetPawn()->GetComponentByClass(URelatedWorldNetLocCorrectionComponent::StaticClass()));
 
-	if (Caller != nullptr)
+	if (HookComp != nullptr)
 	{
-		P_GET_STRUCT(FVector_NetQuantize, CamLoc);
-		P_GET_PROPERTY(FIntProperty, CamPitchAndYaw);
-		P_FINISH;
-		P_NATIVE_BEGIN;
-		URelatedWorldNetLocCorrectionComponent* HookComp = Cast<URelatedWorldNetLocCorrectionComponent>(Caller->GetPawn()->GetComponentByClass(URelatedWorldNetLocCorrectionComponent::StaticClass()));
-
-		if (HookComp != nullptr)
-		{
-			HookComp->PreRPC_ServerUpdateCamera(Caller, CamLoc, CamPitchAndYaw);
-			HookComp->ServerUpdateCamera(Caller, CamLoc, CamPitchAndYaw);
-		}
-
-		P_NATIVE_END;
+		HookComp->PreRPC_ServerUpdateCamera(p_this, CamLoc, CamPitchAndYaw);
+		HookComp->ServerUpdateCamera(p_this, CamLoc, CamPitchAndYaw);
 	}
+
+	P_NATIVE_END;
 }
+END_UFUNCTION_HOOK
 
 URelatedWorldNetLocCorrectionComponent::URelatedWorldNetLocCorrectionComponent()
 {
