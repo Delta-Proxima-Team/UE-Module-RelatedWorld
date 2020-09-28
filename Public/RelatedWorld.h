@@ -6,6 +6,8 @@
 #include "UObject/NoExportTypes.h"
 #include "RelatedWorld.generated.h"
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnWorldTranslationChanged, const FIntVector&, WorldTranslation);
+
 UCLASS()
 class RELATEDWORLD_API URelatedWorldUtils : public UBlueprintFunctionLibrary
 {
@@ -41,6 +43,10 @@ public:
 		static FVector RelatedWorldLocationToRelatedWorldLocation(class URelatedWorld* From, class URelatedWorld* To, const FVector& Location);
 
 	static FVector CONVERT_RelToRel(const FIntVector& From, const FIntVector& To, const FVector& Location);
+
+	/** Returns the RelatedLocation component from giving actor */
+	UFUNCTION(BlueprintPure, Category = "WorldDirector")
+		static URelatedLocationComponent* GetRelatedLocationComponent(AActor* InActor);
 
 //** BEGIN GameplayStatics wrapper
 
@@ -132,6 +138,9 @@ public:
 	UWorld* GetWorld() const override;
 
 /** END UObject Interface **/
+
+public:
+	FOnWorldTranslationChanged OnWorldTranslationChanged;
 
 private:
 	FWorldContext* _Context;

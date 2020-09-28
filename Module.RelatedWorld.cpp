@@ -9,7 +9,6 @@
 
 DECLARE_UFUNCTION_HOOK(AActor, OnRep_ReplicatedMovement);
 
-DECLARE_UFUNCTION_HOOK(ACharacter, ServerMoveNoBase);
 DECLARE_UFUNCTION_HOOK(ACharacter, ClientAdjustPosition);
 
 DECLARE_UFUNCTION_HOOK(APlayerController, ServerUpdateCamera);
@@ -24,7 +23,7 @@ public:
 		WorldDirector->AddToRoot();
 
 		ENABLE_UFUNCTION_HOOK(AActor, OnRep_ReplicatedMovement);
-		ENABLE_UFUNCTION_HOOK(ACharacter, ServerMoveNoBase);
+
 		ENABLE_UFUNCTION_HOOK(ACharacter, ClientAdjustPosition);
 
 		FLAGS_UFUNCTION_HOOK(APlayerController, ServerUpdateCamera, FUNC_Static);

@@ -14,10 +14,10 @@ void UReplicationGraphNode_RwDynamicNode::NotifyAddNetworkActor(const FNewReplic
 
 	URelatedWorld* rWorld = UWorldDirector::Get()->GetRelatedWorldFromActor(Actor);
 
-	if (rWorld != nullptr)
+	/*if (rWorld != nullptr)
 	{
 		GlobalLocation = URelatedWorldUtils::RelatedWorldLocationToWorldLocation(rWorld, Location);
-	}
+	}*/
 
 	ActorRepInfo.WorldLocation = GlobalLocation;
 	ActorList.Add(Actor);
@@ -40,10 +40,10 @@ void UReplicationGraphNode_RwDynamicNode::PrepareForReplication()
 		
 		URelatedWorld* rWorld = UWorldDirector::Get()->GetRelatedWorldFromActor(Actor);
 
-		if (rWorld != nullptr)
+		/*if (rWorld != nullptr)
 		{
 			GlobalLocation = URelatedWorldUtils::RelatedWorldLocationToWorldLocation(rWorld, Location);
-		}
+		}*/
 
 		ActorRepInfo.WorldLocation = GlobalLocation;
 	}

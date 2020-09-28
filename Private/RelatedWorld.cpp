@@ -2,7 +2,7 @@
 
 #include "RelatedWorld.h"
 #include "WorldDirector.h"
-#include "Net/RelatedWorldNetLocCorrectionComponent.h"
+#include "Components/RelatedLocationComponent.h"
 
 #include "FxSystem.h"
 #include "InGamePerformanceTracker.h"
@@ -71,6 +71,11 @@ FVector URelatedWorldUtils::CONVERT_RelToRel(const FIntVector& From, const FIntV
 		Location.Y + From.Y - To.Y,
 		Location.Z + From.Z - To.Z
 	);
+}
+
+URelatedLocationComponent* URelatedWorldUtils::GetRelatedLocationComponent(AActor* InActor)
+{
+	return Cast<URelatedLocationComponent>(InActor->GetComponentByClass(URelatedLocationComponent::StaticClass()));
 }
 
 APlayerController* URelatedWorldUtils::GetPlayerController(const UObject* WorldContextObject, int32 PlayerIndex)
@@ -408,6 +413,9 @@ AActor* URelatedWorld::SpawnActor(UClass* Class, const FTransform& SpawnTransfor
 
 	AActor* SpawnedActor = WorldToSpawn->SpawnActor<AActor>(Class, SpawnTransform, SpawnParams);
 
+	URelatedLocationComponent* LocationComponent = NewObject<URelatedLocationComponent>(SpawnedActor, TEXT("LocationComponent"), RF_Transient);
+	LocationComponent->RegisterComponent();
+
 	return SpawnedActor;
 }
 
@@ -421,4 +429,6 @@ void URelatedWorld::SetWorldOrigin(FIntVector NewOrigin)
 void URelatedWorld::TranslateWorld(FIntVector NewTranslation)
 {
 	WorldTranslation = NewTranslation;
+
+	OnWorldTranslationChanged.Broadcast(WorldTranslation);
 }

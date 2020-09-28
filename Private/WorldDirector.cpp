@@ -2,7 +2,7 @@
 
 #include "WorldDirector.h"
 #include "RelatedWorld.h"
-#include "Net/RelatedWorldNetLocCorrectionComponent.h"
+#include "Components/RelatedLocationComponent.h"
 
 #include "EngineUtils.h"
 #include "ShaderCompiler.h"
@@ -367,13 +367,33 @@ bool UWorldDirector::MoveActorToWorld(URelatedWorld* World, AActor* InActor, boo
 		RootComponent->SetWorldLocation(NewLocation);
 	}
 
-	URelatedWorldNetLocCorrectionComponent* CorrectionComp = Cast<URelatedWorldNetLocCorrectionComponent>(InActor->GetComponentByClass(URelatedWorldNetLocCorrectionComponent::StaticClass()));
+	ULevel* NewOuter = World != nullptr ? World->Context()->World()->PersistentLevel : MainWorld->PersistentLevel;
+	bool bMoved = InActor->Rename(nullptr, NewOuter);
 
-	if (CorrectionComp != nullptr)
+	if (bMoved)
 	{
-		CorrectionComp->NotifyWorldChanged(World);
+		URelatedLocationComponent* LocationComponent = Cast<URelatedLocationComponent>(InActor->GetComponentByClass(URelatedLocationComponent::StaticClass()));
+
+		if (LocationComponent != nullptr)
+		{
+			if (InActor->GetNetMode() != NM_DedicatedServer || World == nullptr || !World->IsNetworkedWorld())
+			{
+				LocationComponent->DestroyComponent();
+			}
+			else
+			{
+				LocationComponent->NotifyWorldChanged(World);
+			}
+		}
+		else
+		{
+			if (InActor->GetNetMode() == NM_DedicatedServer && World != nullptr && World->IsNetworkedWorld())
+			{
+				LocationComponent = NewObject<URelatedLocationComponent>(InActor, TEXT("LocationComponent"), RF_Transient);
+				LocationComponent->RegisterComponent();
+			}
+		}
 	}
 
-	ULevel* NewOuter = World != nullptr ? World->Context()->World()->PersistentLevel : MainWorld->PersistentLevel;
-	return InActor->Rename(nullptr, NewOuter);
+	return bMoved;
 }

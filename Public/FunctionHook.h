@@ -4,6 +4,9 @@
 
 #include "CoreMinimal.h"
 
+#define HOOK_COMPONENT(ComponentClass) ComponentClass* p_comp = Cast<ComponentClass>(p_this->GetComponentByClass(ComponentClass::StaticClass()))
+#define HOOK_CONTROLLER_COMPONENT(ComponentClass) ComponentClass* p_comp = Cast<ComponentClass>(p_this->GetPawn()->GetComponentByClass(ComponentClass::StaticClass()))
+
 #define DECLARE_UFUNCTION_HOOK(Class, Func) \
 void HOOK_##Class##_##Func##_Implementation(UObject* Context, FFrame& Stack, RESULT_DECL); \
 \
@@ -29,7 +32,8 @@ FHOOK_##Class##_##Func Hook_##Class##_##Func##_Struct
 
 #define IMPLEMENT_UFUNCTION_HOOK(Class, Func) void HOOK_##Class##_##Func##_Implementation(UObject* Context, FFrame& Stack, RESULT_DECL) \
 { \
-	Class* p_this = CastChecked<Class>(Context);
+	Class* p_this = CastChecked<Class>(Context); \
+
 
 #define END_UFUNCTION_HOOK }
 	
