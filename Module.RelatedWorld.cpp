@@ -3,15 +3,16 @@
 #include "Modules/ModuleManager.h"
 #include "RelatedWorldModuleInterface.h"
 #include "WorldDirector.h"
+#include "FunctionHook.h"
 
 #include "GameFramework/Character.h"
 
-void HOOK_AActor_OnRep_ReplicatedMovement(UObject* Context, FFrame& Stack, RESULT_DECL);
+DECLARE_UFUNCTION_HOOK(AActor, OnRep_ReplicatedMovement);
 
-void HOOK_ACharacter_ServerMoveNoBase(UObject* Context, FFrame& Stack, RESULT_DECL);
-void HOOK_ACharacter_ClientAdjustPosition(UObject* Context, FFrame& Stack, RESULT_DECL);
+DECLARE_UFUNCTION_HOOK(ACharacter, ServerMoveNoBase);
+DECLARE_UFUNCTION_HOOK(ACharacter, ClientAdjustPosition);
 
-void HOOK_APlayerController_ServerUpdateCamera(UObject* Context, FFrame& Stack, RESULT_DECL);
+DECLARE_UFUNCTION_HOOK(APlayerController, ServerUpdateCamera);
 
 class FRelatedWorldModule : public IRelatedWorldModule
 {
@@ -22,21 +23,12 @@ public:
 		check(WorldDirector);
 		WorldDirector->AddToRoot();
 
-		//Setup some hooks on RepNotify events
-		UFunction* FUNC_AActor_OnRep_ReplicatedMovement = AActor::StaticClass()->FindFunctionByName(TEXT("OnRep_ReplicatedMovement"));
-		FUNC_AActor_OnRep_ReplicatedMovement->SetNativeFunc(&HOOK_AActor_OnRep_ReplicatedMovement);
+		ENABLE_UFUNCTION_HOOK(AActor, OnRep_ReplicatedMovement);
+		ENABLE_UFUNCTION_HOOK(ACharacter, ServerMoveNoBase);
+		ENABLE_UFUNCTION_HOOK(ACharacter, ClientAdjustPosition);
 
-		//Character Hooks
-		UFunction* FUNC_ACharacter_ServerMoveNoBase = ACharacter::StaticClass()->FindFunctionByName(TEXT("ServerMoveNoBase"));
-		FUNC_ACharacter_ServerMoveNoBase->SetNativeFunc(&HOOK_ACharacter_ServerMoveNoBase);
-
-		UFunction* FUNC_ACharacter_ClientAdjustPosition = ACharacter::StaticClass()->FindFunctionByName(TEXT("ClientAdjustPosition"));
-		FUNC_ACharacter_ClientAdjustPosition->SetNativeFunc(&HOOK_ACharacter_ClientAdjustPosition);
-
-		//PlayerController Hookds
-		UFunction* FUNC_APlayerController_ServerUpdateCamera = APlayerController::StaticClass()->FindFunctionByName(TEXT("ServerUpdateCamera"));
-		FUNC_APlayerController_ServerUpdateCamera->FunctionFlags |= FUNC_Static;
-		FUNC_APlayerController_ServerUpdateCamera->SetNativeFunc(&HOOK_APlayerController_ServerUpdateCamera);
+		FLAGS_UFUNCTION_HOOK(APlayerController, ServerUpdateCamera, FUNC_Static);
+		ENABLE_UFUNCTION_HOOK(APlayerController, ServerUpdateCamera);
 	}
 
 	void ShutdownModule()

@@ -5,12 +5,13 @@
 #include "PhysicsReplication.h"
 #include "WorldDirector.h"
 #include "RelatedWorld.h"
+#include "FunctionHook.h"
 
 #include "GameFramework/Character.h"
 
-void HOOK_AActor_OnRep_ReplicatedMovement(UObject* Context, FFrame& Stack, RESULT_DECL)
+IMPLEMENT_UFUNCTION_HOOK(AActor, OnRep_ReplicatedMovement)
 {
-	AActor* Caller = Cast<AActor>(Context);
+	AActor* Caller = Cast<AActor>(P_THIS_OBJECT);
 
 	if (Caller != nullptr)
 	{
@@ -30,9 +31,9 @@ void HOOK_AActor_OnRep_ReplicatedMovement(UObject* Context, FFrame& Stack, RESUL
 	}
 }
 
-void HOOK_ACharacter_ServerMoveNoBase(UObject* Context, FFrame& Stack, RESULT_DECL)
+IMPLEMENT_UFUNCTION_HOOK(ACharacter, ServerMoveNoBase)
 {
-	ACharacter* Caller = Cast<ACharacter>(Context);
+	ACharacter* Caller = Cast<ACharacter>(P_THIS_OBJECT);
 
 	if (Caller != nullptr)
 	{
@@ -65,9 +66,9 @@ void HOOK_ACharacter_ServerMoveNoBase(UObject* Context, FFrame& Stack, RESULT_DE
 	}
 }
 
-void HOOK_ACharacter_ClientAdjustPosition(UObject* Context, FFrame& Stack, RESULT_DECL)
+IMPLEMENT_UFUNCTION_HOOK(ACharacter, ClientAdjustPosition)
 {
-	ACharacter* Caller = Cast<ACharacter>(Context);
+	ACharacter* Caller = Cast<ACharacter>(P_THIS_OBJECT);
 
 	if (Caller != nullptr)
 	{
@@ -93,9 +94,9 @@ void HOOK_ACharacter_ClientAdjustPosition(UObject* Context, FFrame& Stack, RESUL
 	}
 }
 
-void HOOK_APlayerController_ServerUpdateCamera(UObject* Context, FFrame& Stack, RESULT_DECL)
+IMPLEMENT_UFUNCTION_HOOK(APlayerController, ServerUpdateCamera)
 {
-	APlayerController* Caller = Cast<APlayerController>(Context);
+	APlayerController* Caller = Cast<APlayerController>(P_THIS_OBJECT);
 
 	if (Caller != nullptr)
 	{
