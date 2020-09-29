@@ -35,7 +35,7 @@ public:
 	void APlayerController_ServerUpdateCamera(FVector_NetQuantize CamLoc, int32 CamPitchAndYaw);
 
 	UFUNCTION(Server, UnReliable, WithValidation)
-		void Server_AplayerController_ServerUpdateCamera(FVector_NetQuantize CamLoc, int32 CamPitchAndYaw);
+		void Server_APlayerController_ServerUpdateCamera(FVector_NetQuantize CamLoc, int32 CamPitchAndYaw);
 
 /** END HOOKS **/
 

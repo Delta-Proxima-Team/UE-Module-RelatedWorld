@@ -147,20 +147,25 @@ void URelatedLocationComponent::APlayerController_ServerUpdateCamera(FVector_Net
 	
 	FIntVector Rebase = WorldTranslation - GetWorld()->OriginLocation;
 	FVector CameraLocation = URelatedWorldUtils::CONVERT_WorldToRel(Rebase, POV.Location);
-	Server_AplayerController_ServerUpdateCamera(CameraLocation, CamPitchAndYaw);
+	Server_APlayerController_ServerUpdateCamera(CameraLocation, CamPitchAndYaw);
 }
 
-bool URelatedLocationComponent::Server_AplayerController_ServerUpdateCamera_Validate(FVector_NetQuantize CamLoc, int32 CamPitchAndYaw)
+bool URelatedLocationComponent::Server_APlayerController_ServerUpdateCamera_Validate(FVector_NetQuantize CamLoc, int32 CamPitchAndYaw)
 {
 	return true;
 }
 
-void URelatedLocationComponent::Server_AplayerController_ServerUpdateCamera_Implementation(FVector_NetQuantize CamLoc, int32 CamPitchAndYaw)
+void URelatedLocationComponent::Server_APlayerController_ServerUpdateCamera_Implementation(FVector_NetQuantize CamLoc, int32 CamPitchAndYaw)
 {
-	APlayerController* PC = Cast<APlayerController>(Cast<ACharacter>(GetOwner())->Controller);
+	APawn* PawnOwner = Cast<APawn>(GetOwner());
 
-	if (PC == nullptr)
-		return;
+	if (PawnOwner != nullptr)
+	{
+		APlayerController* PC = Cast<APlayerController>(PawnOwner->Controller);
 
-	PC->ServerUpdateCamera_Implementation(CamLoc, CamPitchAndYaw);
+		if (PC != nullptr)
+		{
+			PC->ServerUpdateCamera_Implementation(CamLoc, CamPitchAndYaw);
+		}
+	}	
 }
