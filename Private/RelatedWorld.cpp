@@ -413,8 +413,11 @@ AActor* URelatedWorld::SpawnActor(UClass* Class, const FTransform& SpawnTransfor
 
 	AActor* SpawnedActor = WorldToSpawn->SpawnActor<AActor>(Class, SpawnTransform, SpawnParams);
 
-	URelatedLocationComponent* LocationComponent = NewObject<URelatedLocationComponent>(SpawnedActor, TEXT("LocationComponent"), RF_Transient);
-	LocationComponent->RegisterComponent();
+	if (SpawnedActor->GetNetMode() == NM_DedicatedServer && IsNetworkedWorld())
+	{
+		URelatedLocationComponent* LocationComponent = NewObject<URelatedLocationComponent>(SpawnedActor, TEXT("LocationComponent"), RF_Transient);
+		LocationComponent->RegisterComponent();
+	}
 
 	return SpawnedActor;
 }
