@@ -25,7 +25,7 @@ NetDriverDefinitions=(DefName="GameNetDriver",DriverClassName="/Script/RelatedWo
 +NetDriverDefinitions=(DefName="DemoNetDriver",DriverClassName="/Script/Engine.DemoNetDriver",DriverClassNameFallback="/Script/Engine.DemoNetDriver")
 
 [/Script/RelatedWorld.RwIpNetDriver]
-ReplicationDriverClassName="/Script/RelatedWorld.RwReplcationGraphBase"
+ReplicationDriverClassName="/Script/RelatedWorld.RwReplicationGraphBase"
 ```
 
 - Make sure plugin **OnlineSubsystemUtils** is on
