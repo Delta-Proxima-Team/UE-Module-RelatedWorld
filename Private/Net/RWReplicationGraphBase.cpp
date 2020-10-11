@@ -1,7 +1,5 @@
 // Copyright Delta-Proxima Team (c) 2007-2020
 
-#pragma once
-
 #include "Net/RwReplicationGraphBase.h"
 #include "WorldDirector.h"
 #include "RelatedWorld.h"
