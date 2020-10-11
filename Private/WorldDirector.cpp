@@ -12,7 +12,7 @@
 
 DEFINE_LOG_CATEGORY(LogWorldDirector);
 
-URelatedWorld* UWorldDirector::CreateEmptyWorld(UObject* WorldContextObject, FName WorldName, FIntVector WorldTranslation, bool IsNetWorld)
+URelatedWorld* UWorldDirector::CreateEmptyWorld(UObject* WorldContextObject, FName WorldName, FIntVector WorldTranslation, EWorldDomain WorldDomain, bool IsNetWorld)
 {
 	URelatedWorld* rWorld = nullptr;
 
@@ -63,6 +63,7 @@ URelatedWorld* UWorldDirector::CreateEmptyWorld(UObject* WorldContextObject, FNa
 	rWorld = NewObject<URelatedWorld>(this);
 	rWorld->AddToRoot();
 	rWorld->SetContext(&Context);
+	rWorld->SetDomain(WorldDomain);
 	rWorld->SetNetworked(IsNetWorld);
 	rWorld->TranslateWorld(WorldTranslation);
 	rWorld->SetPersistentWorld(Context.OwningGameInstance->GetWorld());
@@ -73,7 +74,7 @@ URelatedWorld* UWorldDirector::CreateEmptyWorld(UObject* WorldContextObject, FNa
 	return rWorld;
 }
 
-URelatedWorld* UWorldDirector::LoadRelatedWorld(UObject* WorldContextObject, FName WorldName, FIntVector WorldTranslation, bool IsNetWorld)
+URelatedWorld* UWorldDirector::LoadRelatedWorld(UObject* WorldContextObject, FName WorldName, FIntVector WorldTranslation, EWorldDomain WorldDomain, bool IsNetWorld)
 {
 	URelatedWorld* rWorld = nullptr;
 	
@@ -213,6 +214,7 @@ URelatedWorld* UWorldDirector::LoadRelatedWorld(UObject* WorldContextObject, FNa
 	rWorld->AddToRoot();
 	rWorld->SetContext(&Context);
 	rWorld->SetNetworked(IsNetWorld);
+	rWorld->SetDomain(WorldDomain);
 	rWorld->TranslateWorld(WorldTranslation);
 	rWorld->SetPersistentWorld(Context.OwningGameInstance->GetWorld());
 	rWorld->HandleBeginPlay();

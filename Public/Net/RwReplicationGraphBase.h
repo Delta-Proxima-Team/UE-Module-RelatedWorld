@@ -3,57 +3,62 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "BasicReplicationGraph.h"
+#include "ReplicationGraph.h"
 #include "RwReplicationGraphBase.generated.h"
 
 UCLASS()
-class RELATEDWORLD_API UReplicationGraphNode_RwDynamicNode : public UReplicationGraphNode
+class RELATEDWORLD_API UReplicationGraphNode_Domain : public UReplicationGraphNode
 {
 	GENERATED_BODY()
 
 public:
-	UReplicationGraphNode_RwDynamicNode() { bRequiresPrepareForReplicationCall = true; ActorList.Reset(4); }
-
+	UReplicationGraphNode_Domain() { bRequiresPrepareForReplicationCall = true; };
 	virtual void NotifyAddNetworkActor(const FNewReplicatedActorInfo& Actor) override;
 	virtual bool NotifyRemoveNetworkActor(const FNewReplicatedActorInfo& Actor, bool bWarnIfNotFound = true) override;
+	virtual void GatherActorListsForConnection(const FConnectionGatherActorListParameters& Params) override;
+	virtual void PrepareForReplication() override;
+
+};
+
+UCLASS()
+class RELATEDWORLD_API UReplicationGraphNode_GlobalGridSpatialization2D : public UReplicationGraphNode_GridSpatialization2D
+{
+	GENERATED_BODY()
+
+public:
+	UReplicationGraphNode_GlobalGridSpatialization2D() { bRequiresPrepareForReplicationCall = true; };
+	virtual void NotifyAddNetworkActor(const FNewReplicatedActorInfo& Actor) override;
 	virtual void PrepareForReplication() override;
 	virtual void GatherActorListsForConnection(const FConnectionGatherActorListParameters& Params) override;
 
 protected:
-	FActorRepListRefView ActorList;
-
+	TArray<FActorRepListType> DynamicSpatializedActors;
 };
 
-UCLASS(transient, config = Engine)
-class RELATEDWORLD_API URwReplcationGraphBase : public UReplicationGraph
+UCLASS(Transient, Config = Engine)
+class RELATEDWORLD_API URwReplicationGraphBase : public UReplicationGraph
 {
 	GENERATED_BODY()
 
 public:
-	URwReplcationGraphBase();
+	template<class T>
+	T* CreateNewDomainNode(uint8 Domain);
+	virtual void RouteAddNetworkActorToNodes(const FNewReplicatedActorInfo& ActorInfo, FGlobalActorReplicationInfo& GlobalInfo) override;
+
+	virtual int32 ServerReplicateActors(float DeltaSeconds) override;
 
 protected:
 	virtual void InitGlobalActorClassSettings() override;
 	virtual void InitGlobalGraphNodes() override;
-	virtual void InitConnectionGraphNodes(UNetReplicationGraphConnection* RepGraphConnection) override;
-	virtual void RouteAddNetworkActorToNodes(const FNewReplicatedActorInfo& ActorInfo, FGlobalActorReplicationInfo& GlobalInfo) override;
-	virtual void RouteRemoveNetworkActorToNodes(const FNewReplicatedActorInfo& ActorInfo) override;
+	virtual void InitConnectionGraphNodes(UNetReplicationGraphConnection* ConnectionManager) override;
 
-	virtual int32 ServerReplicateActors(float DeltaSeconds) override;
-
-	UPROPERTY()
-		UReplicationGraphNode_RwDynamicNode* DynamicNode;
-
+private:
 	UPROPERTY()
 		UReplicationGraphNode_ActorList* AlwaysRelevantNode;
-
 	UPROPERTY()
-		TArray<FConnectionAlwaysRelevantNodePair> AlwaysRelevantForConnectionList;
-
-	/** Actors that are only supposed to replicate to their owning connection, but that did not have a connection on spawn */
+		TArray<AActor*> ActorsWithoutConnection;
 	UPROPERTY()
-		TArray<AActor*> ActorsWithoutNetConnection;
-
-
-	UReplicationGraphNode_AlwaysRelevant_ForConnection* GetAlwaysRelevantNodeForConnection(UNetConnection* Connection);
+		TMap<UNetConnection*, UReplicationGraphNode_AlwaysRelevant_ForConnection*> ConnectionRelevantNode;
+	UPROPERTY()
+		UReplicationGraphNode_Domain* DomainNode[3];
 };

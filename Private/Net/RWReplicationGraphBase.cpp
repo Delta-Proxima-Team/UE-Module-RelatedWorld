@@ -1,70 +1,95 @@
 // Copyright Delta-Proxima Team (c) 2007-2020
 
-#include "Net/RWReplicationGraphBase.h"
+#pragma once
+
+#include "Net/RwReplicationGraphBase.h"
 #include "WorldDirector.h"
 #include "RelatedWorld.h"
 
-void UReplicationGraphNode_RwDynamicNode::NotifyAddNetworkActor(const FNewReplicatedActorInfo& ActorInfo)
+void UReplicationGraphNode_Domain::NotifyAddNetworkActor(const FNewReplicatedActorInfo& ActorInfo)
 {
-	AActor* Actor = ActorInfo.Actor;
-	FVector Location = Actor->GetActorLocation();
-	FVector GlobalLocation = Location;
-
-	FGlobalActorReplicationInfo& ActorRepInfo = GraphGlobals->GlobalActorReplicationInfoMap->Get(Actor);
-
-	URelatedWorld* rWorld = UWorldDirector::Get()->GetRelatedWorldFromActor(Actor);
-
-	/*if (rWorld != nullptr)
+	for (UReplicationGraphNode* ChildNode : AllChildNodes)
 	{
-		GlobalLocation = URelatedWorldUtils::RelatedWorldLocationToWorldLocation(rWorld, Location);
-	}*/
-
-	ActorRepInfo.WorldLocation = GlobalLocation;
-	ActorList.Add(Actor);
-}
-
-bool UReplicationGraphNode_RwDynamicNode::NotifyRemoveNetworkActor(const FNewReplicatedActorInfo& ActorInfo, bool bWarnIfNotFound)
-{
-	ActorList.Remove(ActorInfo.Actor);
-	return true;
-}
-
-void UReplicationGraphNode_RwDynamicNode::PrepareForReplication()
-{
-	for (AActor* Actor : ActorList)
-	{
-		FGlobalActorReplicationInfo& ActorRepInfo = GraphGlobals->GlobalActorReplicationInfoMap->Get(Actor);
-
-		FVector Location = Actor->GetActorLocation();
-		FVector GlobalLocation = Location;
-		
-		URelatedWorld* rWorld = UWorldDirector::Get()->GetRelatedWorldFromActor(Actor);
-
-		/*if (rWorld != nullptr)
+		if (UReplicationGraphNode_GlobalGridSpatialization2D* ggs2DNode = Cast<UReplicationGraphNode_GlobalGridSpatialization2D>(ChildNode))
 		{
-			GlobalLocation = URelatedWorldUtils::RelatedWorldLocationToWorldLocation(rWorld, Location);
-		}*/
-
-		ActorRepInfo.WorldLocation = GlobalLocation;
+			ggs2DNode->NotifyAddNetworkActor(ActorInfo);
+		}
+		else if (UReplicationGraphNode_GridSpatialization2D* gs2DNode = Cast<UReplicationGraphNode_GridSpatialization2D>(ChildNode))
+		{
+			gs2DNode->AddActor_Dormancy(ActorInfo, GraphGlobals->GlobalActorReplicationInfoMap->Get(ActorInfo.Actor));
+		}
+		else
+		{
+			ChildNode->NotifyAddNetworkActor(ActorInfo);
+		}
 	}
 }
 
-void UReplicationGraphNode_RwDynamicNode::GatherActorListsForConnection(const FConnectionGatherActorListParameters& Params)
+bool UReplicationGraphNode_Domain::NotifyRemoveNetworkActor(const FNewReplicatedActorInfo& Actor, bool bWarnIfNotFound)
 {
-	Params.OutGatheredReplicationLists.AddReplicationActorList(ActorList);
+	return true;
+}
 
+void UReplicationGraphNode_Domain::GatherActorListsForConnection(const FConnectionGatherActorListParameters& Params)
+{
 	for (UReplicationGraphNode* ChildNode : AllChildNodes)
 	{
 		ChildNode->GatherActorListsForConnection(Params);
 	}
 }
 
-URwReplcationGraphBase::URwReplcationGraphBase()
+void UReplicationGraphNode_Domain::PrepareForReplication()
 {
-
+	for (UReplicationGraphNode* ChildNode : AllChildNodes)
+	{
+		if (ChildNode->GetRequiresPrepareForReplication())
+		{
+			ChildNode->PrepareForReplication();
+		}
+	}
 }
 
-void URwReplcationGraphBase::InitGlobalActorClassSettings()
+void UReplicationGraphNode_GlobalGridSpatialization2D::PrepareForReplication()
+{
+	Super::PrepareForReplication();
+
+	for (AActor* Actor : DynamicSpatializedActors)
+	{
+		FGlobalActorReplicationInfo& ActorRepInfo = GraphGlobals->GlobalActorReplicationInfoMap->Get(Actor);
+		FVector Location = Actor->GetActorLocation();
+
+		URelatedWorld* rWorld = UWorldDirector::Get()->GetRelatedWorldFromActor(Actor);
+
+		if (rWorld != nullptr)
+		{
+			FIntVector Translation = rWorld->GetWorldTranslation();
+			ActorRepInfo.WorldLocation = URelatedWorldUtils::CONVERT_RelToWorld(Translation, Location);
+		}
+	}
+}
+
+void UReplicationGraphNode_GlobalGridSpatialization2D::NotifyAddNetworkActor(const FNewReplicatedActorInfo& ActorInfo)
+{
+	AddActor_Dormancy(ActorInfo, GraphGlobals->GlobalActorReplicationInfoMap->Get(ActorInfo.Actor));
+	DynamicSpatializedActors.Emplace(ActorInfo.Actor);
+}
+
+void UReplicationGraphNode_GlobalGridSpatialization2D::GatherActorListsForConnection(const FConnectionGatherActorListParameters& Params)
+{
+	AActor* Viewer = Params.Viewer.ViewTarget;
+
+	URelatedWorld* rWorld = UWorldDirector::Get()->GetRelatedWorldFromActor(Viewer);
+
+	if (rWorld != nullptr)
+	{
+		FIntVector Translation = rWorld->GetWorldTranslation();
+		Params.Viewer.ViewLocation = URelatedWorldUtils::CONVERT_RelToWorld(Translation, Params.Viewer.ViewLocation);
+	}
+
+	Super::GatherActorListsForConnection(Params);
+}
+
+void URwReplicationGraphBase::InitGlobalActorClassSettings()
 {
 	Super::InitGlobalActorClassSettings();
 
@@ -103,36 +128,57 @@ void URwReplcationGraphBase::InitGlobalActorClassSettings()
 	}
 }
 
-void URwReplcationGraphBase::InitGlobalGraphNodes()
+void URwReplicationGraphBase::InitGlobalGraphNodes()
 {
-	// Preallocate some replication lists.
+	PreAllocateRepList(12, 3);
 
-
-	// -----------------------------------------------
-	//	Spatial Actors
-	// -----------------------------------------------
-
-	DynamicNode = CreateNewNode<UReplicationGraphNode_RwDynamicNode>();
-	AddGlobalGraphNode(DynamicNode);
-
-	// -----------------------------------------------
-	//	Always Relevant (to everyone) Actors
-	// -----------------------------------------------
 	AlwaysRelevantNode = CreateNewNode<UReplicationGraphNode_ActorList>();
 	AddGlobalGraphNode(AlwaysRelevantNode);
+
+	UReplicationGraphNode_GridSpatialization2D* GridNode = nullptr;
+
+	DomainNode[(uint8)EWorldDomain::WD_PUBLIC] = CreateNewNode<UReplicationGraphNode_Domain>();
+	GridNode = CreateNewDomainNode<UReplicationGraphNode_GlobalGridSpatialization2D>((uint8)EWorldDomain::WD_PUBLIC);
+	GridNode->CellSize = 10000.f;
+	GridNode->SpatialBias = FVector2D(-WORLD_MAX, -WORLD_MAX);
+	AddGlobalGraphNode(DomainNode[(uint8)EWorldDomain::WD_PUBLIC]);
+
+	DomainNode[(uint8)EWorldDomain::WD_PRIVATE] = CreateNewNode<UReplicationGraphNode_Domain>();
+	GridNode = CreateNewDomainNode<UReplicationGraphNode_GridSpatialization2D>((uint8)EWorldDomain::WD_PRIVATE);
+	GridNode->CellSize = 10000.f;
+	GridNode->SpatialBias = FVector2D(-WORLD_MAX, -WORLD_MAX);
+	AddGlobalGraphNode(DomainNode[(uint8)EWorldDomain::WD_PRIVATE]);
+
+	DomainNode[(uint8)EWorldDomain::WD_ISOLATED] = CreateNewNode<UReplicationGraphNode_Domain>();
+	GridNode = CreateNewDomainNode<UReplicationGraphNode_GridSpatialization2D>((uint8)EWorldDomain::WD_ISOLATED);
+	GridNode->CellSize = 10000.f;
+	GridNode->SpatialBias = FVector2D(-WORLD_MAX, -WORLD_MAX);
+	AddGlobalGraphNode(DomainNode[(uint8)EWorldDomain::WD_ISOLATED]);
 }
 
-void URwReplcationGraphBase::InitConnectionGraphNodes(UNetReplicationGraphConnection* RepGraphConnection)
+template<class T>
+T* URwReplicationGraphBase::CreateNewDomainNode(uint8 Domain)
 {
-	Super::InitConnectionGraphNodes(RepGraphConnection);
+	T* Node = nullptr;
+
+	if (UReplicationGraphNode_Domain* Dom = DomainNode[Domain])
+	{
+		Node = Dom->CreateChildNode<T>();
+	}
+
+	return Node;
+}
+
+void URwReplicationGraphBase::InitConnectionGraphNodes(UNetReplicationGraphConnection* ConnectionManager)
+{
+	Super::InitConnectionGraphNodes(ConnectionManager);
 
 	UReplicationGraphNode_AlwaysRelevant_ForConnection* AlwaysRelevantNodeForConnection = CreateNewNode<UReplicationGraphNode_AlwaysRelevant_ForConnection>();
-	AddConnectionGraphNode(AlwaysRelevantNodeForConnection, RepGraphConnection);
-
-	AlwaysRelevantForConnectionList.Emplace(RepGraphConnection->NetConnection, AlwaysRelevantNodeForConnection);
+	AddConnectionGraphNode(AlwaysRelevantNodeForConnection, ConnectionManager);
+	ConnectionRelevantNode.Emplace(ConnectionManager->NetConnection, AlwaysRelevantNodeForConnection);
 }
 
-void URwReplcationGraphBase::RouteAddNetworkActorToNodes(const FNewReplicatedActorInfo& ActorInfo, FGlobalActorReplicationInfo& GlobalInfo)
+void URwReplicationGraphBase::RouteAddNetworkActorToNodes(const FNewReplicatedActorInfo& ActorInfo, FGlobalActorReplicationInfo& GlobalInfo)
 {
 	if (ActorInfo.Actor->bAlwaysRelevant)
 	{
@@ -140,78 +186,36 @@ void URwReplcationGraphBase::RouteAddNetworkActorToNodes(const FNewReplicatedAct
 	}
 	else if (ActorInfo.Actor->bOnlyRelevantToOwner)
 	{
-		ActorsWithoutNetConnection.Add(ActorInfo.Actor);
+		ActorsWithoutConnection.Add(ActorInfo.Actor);
 	}
 	else
 	{
-		// Note that UReplicationGraphNode_GridSpatialization2D has 3 methods for adding actor based on the mobility of the actor. Since AActor lacks this information, we will
-		// add all spatialized actors as dormant actors: meaning they will be treated as possibly dynamic (moving) when not dormant, and as static (not moving) when dormant.
-		DynamicNode->NotifyAddNetworkActor(ActorInfo);
-	}
-}
+		URelatedWorld* rWorld = UWorldDirector::Get()->GetRelatedWorldFromActor(ActorInfo.Actor);
 
-void URwReplcationGraphBase::RouteRemoveNetworkActorToNodes(const FNewReplicatedActorInfo& ActorInfo)
-{
-	if (ActorInfo.Actor->bAlwaysRelevant)
-	{
-		AlwaysRelevantNode->NotifyRemoveNetworkActor(ActorInfo);
-		SetActorDestructionInfoToIgnoreDistanceCulling(ActorInfo.GetActor());
-	}
-	else if (ActorInfo.Actor->bOnlyRelevantToOwner)
-	{
-		if (UReplicationGraphNode* Node = ActorInfo.Actor->GetNetConnection() ? GetAlwaysRelevantNodeForConnection(ActorInfo.Actor->GetNetConnection()) : nullptr)
+		if (rWorld != nullptr)
 		{
-			Node->NotifyRemoveNetworkActor(ActorInfo);
-		}
-	}
-	else
-	{
-		DynamicNode->NotifyRemoveNetworkActor(ActorInfo);
-	}
-}
-
-UReplicationGraphNode_AlwaysRelevant_ForConnection* URwReplcationGraphBase::GetAlwaysRelevantNodeForConnection(UNetConnection* Connection)
-{
-	UReplicationGraphNode_AlwaysRelevant_ForConnection* Node = nullptr;
-	if (Connection)
-	{
-		if (FConnectionAlwaysRelevantNodePair* Pair = AlwaysRelevantForConnectionList.FindByKey(Connection))
-		{
-			if (Pair->Node)
-			{
-				Node = Pair->Node;
-			}
-			else
-			{
-				UE_LOG(LogNet, Warning, TEXT("AlwaysRelevantNode for connection %s is null."), *GetNameSafe(Connection));
-			}
+			EWorldDomain Domain = rWorld->GetWorldDomain();
+			DomainNode[(uint8)Domain]->NotifyAddNetworkActor(ActorInfo);
 		}
 		else
 		{
-			UE_LOG(LogNet, Warning, TEXT("Could not find AlwaysRelevantNode for connection %s. This should have been created in UBasicReplicationGraph::InitConnectionGraphNodes."), *GetNameSafe(Connection));
+			DomainNode[(uint8)EWorldDomain::WD_PUBLIC]->NotifyAddNetworkActor(ActorInfo);
 		}
 	}
-	else
-	{
-		// Basic implementation requires owner is set on spawn that never changes. A more robust graph would have methods or ways of listening for owner to change
-		UE_LOG(LogNet, Warning, TEXT("Actor: %s is bOnlyRelevantToOwner but does not have an owning Netconnection. It will not be replicated"));
-	}
-
-	return Node;
 }
 
-int32 URwReplcationGraphBase::ServerReplicateActors(float DeltaSeconds)
+int32 URwReplicationGraphBase::ServerReplicateActors(float DeltaSeconds)
 {
-	// Route Actors needing owning net connections to appropriate nodes
-	for (int32 idx = ActorsWithoutNetConnection.Num() - 1; idx >= 0; --idx)
+	for (int32 i = ActorsWithoutConnection.Num() - 1; i >= 0; --i)
 	{
 		bool bRemove = false;
-		if (AActor* Actor = ActorsWithoutNetConnection[idx])
+
+		if (AActor* Actor = ActorsWithoutConnection[i])
 		{
 			if (UNetConnection* Connection = Actor->GetNetConnection())
 			{
 				bRemove = true;
-				if (UReplicationGraphNode_AlwaysRelevant_ForConnection* Node = GetAlwaysRelevantNodeForConnection(Actor->GetNetConnection()))
+				if (UReplicationGraphNode_AlwaysRelevant_ForConnection* Node = ConnectionRelevantNode.FindRef(Connection))
 				{
 					Node->NotifyAddNetworkActor(FNewReplicatedActorInfo(Actor));
 				}
@@ -222,23 +226,11 @@ int32 URwReplcationGraphBase::ServerReplicateActors(float DeltaSeconds)
 			bRemove = true;
 		}
 
-		if (bRemove)
+		if (bRemove == true)
 		{
-			ActorsWithoutNetConnection.RemoveAtSwap(idx, 1, false);
+			ActorsWithoutConnection.RemoveAt(i, 1, false);
 		}
 	}
 
-
 	return Super::ServerReplicateActors(DeltaSeconds);
-}
-
-bool FConnectionAlwaysRelevantNodePair::operator==(UNetConnection* InConnection) const
-{
-	// Any children should be looking at their parent connections instead.
-	if (InConnection->GetUChildConnection() != nullptr)
-	{
-		InConnection = ((UChildConnection*)InConnection)->Parent;
-	}
-
-	return InConnection == NetConnection;
 }

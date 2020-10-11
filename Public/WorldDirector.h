@@ -11,6 +11,8 @@
 
 DECLARE_LOG_CATEGORY_EXTERN(LogWorldDirector, Log, All);
 
+enum class EWorldDomain : uint8;
+
 UCLASS(BlueprintType)
 class RELATEDWORLD_API UWorldDirector : public UObject
 {
@@ -34,7 +36,7 @@ public:
 	 * 
 	 */
 	UFUNCTION(BlueprintCallable, Category = "WorldDirector", Meta = (WorldContext = "WorldContextObject"))
-		URelatedWorld* CreateEmptyWorld(UObject* WorldContextObject, FName WorldName, FIntVector WorldTranslation, bool IsNetWorld = true);
+		URelatedWorld* CreateEmptyWorld(UObject* WorldContextObject, FName WorldName, FIntVector WorldTranslation, EWorldDomain WorldDomain, bool IsNetWorld = true);
 
 	/**
 	 * Load related world from map
@@ -46,7 +48,7 @@ public:
 	 * 
 	 */
 	UFUNCTION(BlueprintCallable, Category = "WorldDirector", Meta=(WorldContext="WorldContextObject"))
-		URelatedWorld* LoadRelatedWorld(UObject* WorldContextObject, FName WorldName, FIntVector WorldTranslation, bool IsNetWorld = true);
+		URelatedWorld* LoadRelatedWorld(UObject* WorldContextObject, FName WorldName, FIntVector WorldTranslation, EWorldDomain WorldDomain, bool IsNetWorld = true);
 
 	/** Unload all loaded related worlds */
 	UFUNCTION(BlueprintCallable, Category = "WorldDirector")

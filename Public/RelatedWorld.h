@@ -79,6 +79,14 @@ public:
 		static class AGameStateBase* GetGameState(const UObject* WorldContextObject);
 };
 
+UENUM()
+enum class EWorldDomain : uint8
+{
+	WD_PUBLIC	UMETA(DisplayName = "Public"),
+	WD_PRIVATE	UMETA(DisplayName = "Private"),
+	WD_ISOLATED	UMETA(DisplayName = "Isolated")
+};
+
 UCLASS(BlueprintType)
 class RELATEDWORLD_API URelatedWorld : public UObject, public FTickableGameObject
 {
@@ -93,6 +101,10 @@ public:
 	/** Returns true if the world support networking */
 	UFUNCTION(BlueprintPure, Category = "WorldDirector")
 		FORCEINLINE bool IsNetworkedWorld() const { return bIsNetworkedWorld; }
+
+	/** Returns current world domain */
+	UFUNCTION(BlueprintPure, Category = "WorldDirector")
+		FORCEINLINE EWorldDomain GetWorldDomain() const { return Domain; }
 
 	/** Returns the current translation of the world */
 	UFUNCTION(BlueprintPure, Category = "WorldDirector")
@@ -121,6 +133,7 @@ public:
 private:
 	void SetContext(FWorldContext* Context) { _Context = Context; }
 	void SetNetworked(bool bNetworked) { bIsNetworkedWorld = bNetworked; }
+	void SetDomain(EWorldDomain WorldDomain) { Domain = WorldDomain; }
 	void SetPersistentWorld(UWorld* World) { PersistentWorld = World; }
 
 /** BEGIN FTickableGameObject Interface **/
@@ -146,5 +159,6 @@ private:
 	FWorldContext* _Context;
 	UWorld* PersistentWorld;
 	bool bIsNetworkedWorld;
+	EWorldDomain Domain;
 	FIntVector WorldTranslation;
 };
