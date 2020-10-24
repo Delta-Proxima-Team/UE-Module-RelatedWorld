@@ -6,18 +6,63 @@
 #include "ReplicationGraph.h"
 #include "RwReplicationGraphBase.generated.h"
 
+class URelatedWorld;
+
 UCLASS()
-class RELATEDWORLD_API UReplicationGraphNode_Domain : public UReplicationGraphNode
+class RELATEDWORLD_API UReplicationGraphNode_Proxy : public UReplicationGraphNode
+{
+	GENERATED_BODY()
+public:
+	UReplicationGraphNode_Proxy() { bRequiresPrepareForReplicationCall = true; };
+	virtual void NotifyAddNetworkActor(const FNewReplicatedActorInfo& Actor) override;
+	virtual bool NotifyRemoveNetworkActor(const FNewReplicatedActorInfo& Actor, bool bWarnIfNotFound = true) override;
+	virtual void GatherActorListsForConnection(const FConnectionGatherActorListParameters& Params) override;
+	virtual void PrepareForReplication() override;
+};
+
+UCLASS()
+class RELATEDWORLD_API UReplicationGraphNode_Domain : public UReplicationGraphNode_Proxy
 {
 	GENERATED_BODY()
 
 public:
 	UReplicationGraphNode_Domain() { bRequiresPrepareForReplicationCall = true; };
+	virtual void SetDomain(uint8 Domain) { NodeDomain = Domain; };
+	template<class T>
+	T* CreateRouterNode();
+	FORCEINLINE UReplicationGraphNode* GetRouterNode() const { return RouterNode; };
+	virtual void NotifyAddNetworkActor(const FNewReplicatedActorInfo& Actor) override;
+	virtual bool NotifyRemoveNetworkActor(const FNewReplicatedActorInfo& Actor, bool bWarnIfNotFound = true) override;
+
+private:
+	uint8 NodeDomain;
+	UPROPERTY()
+		UReplicationGraphNode* RouterNode;
+};
+
+struct FRouterRule
+{
+	URelatedWorld* RelatedWorld;
+	TArray<UReplicationGraphNode*> Node;
+};
+
+UCLASS()
+class RELATEDWORLD_API UReplicationGraphNode_WorldRouter : public UReplicationGraphNode_Proxy
+{
+	GENERATED_BODY()
+
+public:
+	template<class T>
+	T* CreateRoutedNodeTemplate();
 	virtual void NotifyAddNetworkActor(const FNewReplicatedActorInfo& Actor) override;
 	virtual bool NotifyRemoveNetworkActor(const FNewReplicatedActorInfo& Actor, bool bWarnIfNotFound = true) override;
 	virtual void GatherActorListsForConnection(const FConnectionGatherActorListParameters& Params) override;
-	virtual void PrepareForReplication() override;
 
+private:
+	UPROPERTY()
+		TArray<UReplicationGraphNode*> RoutedNodeTemplates;
+
+	TArray<FRouterRule> RouterRule;
 };
 
 UCLASS()

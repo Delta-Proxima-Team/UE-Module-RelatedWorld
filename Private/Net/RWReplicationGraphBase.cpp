@@ -4,31 +4,17 @@
 #include "WorldDirector.h"
 #include "RelatedWorld.h"
 
-void UReplicationGraphNode_Domain::NotifyAddNetworkActor(const FNewReplicatedActorInfo& ActorInfo)
+void UReplicationGraphNode_Proxy::NotifyAddNetworkActor(const FNewReplicatedActorInfo& ActorInfo)
 {
-	for (UReplicationGraphNode* ChildNode : AllChildNodes)
-	{
-		if (UReplicationGraphNode_GlobalGridSpatialization2D* ggs2DNode = Cast<UReplicationGraphNode_GlobalGridSpatialization2D>(ChildNode))
-		{
-			ggs2DNode->NotifyAddNetworkActor(ActorInfo);
-		}
-		else if (UReplicationGraphNode_GridSpatialization2D* gs2DNode = Cast<UReplicationGraphNode_GridSpatialization2D>(ChildNode))
-		{
-			gs2DNode->AddActor_Dormancy(ActorInfo, GraphGlobals->GlobalActorReplicationInfoMap->Get(ActorInfo.Actor));
-		}
-		else
-		{
-			ChildNode->NotifyAddNetworkActor(ActorInfo);
-		}
-	}
+
 }
 
-bool UReplicationGraphNode_Domain::NotifyRemoveNetworkActor(const FNewReplicatedActorInfo& Actor, bool bWarnIfNotFound)
+bool UReplicationGraphNode_Proxy::NotifyRemoveNetworkActor(const FNewReplicatedActorInfo& Actor, bool bWarnIfNotFound)
 {
-	return true;
+	return false;
 }
 
-void UReplicationGraphNode_Domain::GatherActorListsForConnection(const FConnectionGatherActorListParameters& Params)
+void UReplicationGraphNode_Proxy::GatherActorListsForConnection(const FConnectionGatherActorListParameters& Params)
 {
 	for (UReplicationGraphNode* ChildNode : AllChildNodes)
 	{
@@ -36,7 +22,7 @@ void UReplicationGraphNode_Domain::GatherActorListsForConnection(const FConnecti
 	}
 }
 
-void UReplicationGraphNode_Domain::PrepareForReplication()
+void UReplicationGraphNode_Proxy::PrepareForReplication()
 {
 	for (UReplicationGraphNode* ChildNode : AllChildNodes)
 	{
@@ -47,10 +33,124 @@ void UReplicationGraphNode_Domain::PrepareForReplication()
 	}
 }
 
+template<class T>
+T* UReplicationGraphNode_Domain::CreateRouterNode()
+{
+	return (T*)(RouterNode = CreateChildNode<T>());
+}
+
+template<class T>
+T* UReplicationGraphNode_WorldRouter::CreateRoutedNodeTemplate()
+{
+	T* Template = NewObject<T>(this);
+	RoutedNodeTemplates.Add(Template);
+	return Template;
+}
+
+void UReplicationGraphNode_Domain::NotifyAddNetworkActor(const FNewReplicatedActorInfo& ActorInfo)
+{
+	URelatedWorld* rWorld = UWorldDirector::Get()->GetRelatedWorldFromActor(ActorInfo.Actor);
+
+	if ((rWorld != nullptr && NodeDomain == (uint8)rWorld->GetWorldDomain())
+		|| (rWorld == nullptr && NodeDomain == 0))
+	{
+		for (UReplicationGraphNode* ChildNode : AllChildNodes)
+		{
+			if (UReplicationGraphNode_GlobalGridSpatialization2D* ggs2DNode = Cast<UReplicationGraphNode_GlobalGridSpatialization2D>(ChildNode))
+			{
+				ggs2DNode->NotifyAddNetworkActor(ActorInfo);
+			}
+			else if (UReplicationGraphNode_GridSpatialization2D* gs2DNode = Cast<UReplicationGraphNode_GridSpatialization2D>(ChildNode))
+			{
+				gs2DNode->AddActor_Dormancy(ActorInfo, GraphGlobals->GlobalActorReplicationInfoMap->Get(ActorInfo.Actor));
+			}
+			else
+			{
+				ChildNode->NotifyAddNetworkActor(ActorInfo);
+			}
+		}
+	}
+}
+
+bool UReplicationGraphNode_Domain::NotifyRemoveNetworkActor(const FNewReplicatedActorInfo& Actor, bool bWarnIfNotFound)
+{
+	return true;
+}
+
+void UReplicationGraphNode_WorldRouter::NotifyAddNetworkActor(const FNewReplicatedActorInfo& ActorInfo)
+{
+	URelatedWorld* rWorld = UWorldDirector::Get()->GetRelatedWorldFromActor(ActorInfo.Actor);
+
+	if (rWorld != nullptr)
+	{
+		bool bAdded = false;
+		for (const FRouterRule& Rule : RouterRule)
+		{
+			if (Rule.RelatedWorld == rWorld)
+			{
+				for (UReplicationGraphNode* RoutedNode : Rule.Node)
+				{
+					if (UReplicationGraphNode_GridSpatialization2D* gs2DNode = Cast<UReplicationGraphNode_GridSpatialization2D>(RoutedNode))
+					{
+						gs2DNode->AddActor_Dormancy(ActorInfo, GraphGlobals->GlobalActorReplicationInfoMap->Get(ActorInfo.Actor));
+					}
+					else
+					{
+						RoutedNode->NotifyAddNetworkActor(ActorInfo);
+					}
+				}
+
+				bAdded = true;
+				break;
+			}
+		}
+
+		if (bAdded == false)
+		{
+			FRouterRule newRule;
+			newRule.RelatedWorld = rWorld;
+
+			for (UReplicationGraphNode* NodeTemplate : RoutedNodeTemplates)
+			{
+				UReplicationGraphNode* NewRoutedNode = DuplicateObject<UReplicationGraphNode>(NodeTemplate, this);
+				NewRoutedNode->Initialize(GraphGlobals);
+				AllChildNodes.Add(NewRoutedNode);
+				newRule.Node.Add(NewRoutedNode);
+			}
+
+			RouterRule.Add(newRule);
+		}
+	}
+}
+
+bool UReplicationGraphNode_WorldRouter::NotifyRemoveNetworkActor(const FNewReplicatedActorInfo& Actor, bool bWarnIfNotFound)
+{
+	return true;
+}
+
+void UReplicationGraphNode_WorldRouter::GatherActorListsForConnection(const FConnectionGatherActorListParameters& Params)
+{
+	URelatedWorld* rWorld = UWorldDirector::Get()->GetRelatedWorldFromActor(Params.Viewer.ViewTarget);
+
+	if (rWorld != nullptr)
+	{
+		for (const FRouterRule Rule : RouterRule)
+		{
+			if (Rule.RelatedWorld == rWorld)
+			{
+				for (UReplicationGraphNode* Node : Rule.Node)
+				{
+					Node->GatherActorListsForConnection(Params);
+				}
+			}
+		}
+	}
+}
+
 void UReplicationGraphNode_GlobalGridSpatialization2D::PrepareForReplication()
 {
 	Super::PrepareForReplication();
-
+	//ToDo: Better use relative coordinate system with origin in player position
 	for (AActor* Actor : DynamicSpatializedActors)
 	{
 		FGlobalActorReplicationInfo& ActorRepInfo = GraphGlobals->GlobalActorReplicationInfoMap->Get(Actor);
@@ -134,21 +234,27 @@ void URwReplicationGraphBase::InitGlobalGraphNodes()
 	AddGlobalGraphNode(AlwaysRelevantNode);
 
 	UReplicationGraphNode_GridSpatialization2D* GridNode = nullptr;
+	UReplicationGraphNode_WorldRouter* RouterNode = nullptr;
 
 	DomainNode[(uint8)EWorldDomain::WD_PUBLIC] = CreateNewNode<UReplicationGraphNode_Domain>();
+	DomainNode[(uint8)EWorldDomain::WD_PUBLIC]->SetDomain((uint8)EWorldDomain::WD_PUBLIC);
 	GridNode = CreateNewDomainNode<UReplicationGraphNode_GlobalGridSpatialization2D>((uint8)EWorldDomain::WD_PUBLIC);
 	GridNode->CellSize = 10000.f;
 	GridNode->SpatialBias = FVector2D(-WORLD_MAX, -WORLD_MAX);
 	AddGlobalGraphNode(DomainNode[(uint8)EWorldDomain::WD_PUBLIC]);
 
 	DomainNode[(uint8)EWorldDomain::WD_PRIVATE] = CreateNewNode<UReplicationGraphNode_Domain>();
-	GridNode = CreateNewDomainNode<UReplicationGraphNode_GridSpatialization2D>((uint8)EWorldDomain::WD_PRIVATE);
+	DomainNode[(uint8)EWorldDomain::WD_PRIVATE]->SetDomain((uint8)EWorldDomain::WD_PRIVATE);
+	RouterNode = DomainNode[(uint8)EWorldDomain::WD_PRIVATE]->CreateRouterNode<UReplicationGraphNode_WorldRouter>();
+	GridNode = RouterNode->CreateRoutedNodeTemplate<UReplicationGraphNode_GridSpatialization2D>();
 	GridNode->CellSize = 10000.f;
 	GridNode->SpatialBias = FVector2D(-WORLD_MAX, -WORLD_MAX);
 	AddGlobalGraphNode(DomainNode[(uint8)EWorldDomain::WD_PRIVATE]);
 
 	DomainNode[(uint8)EWorldDomain::WD_ISOLATED] = CreateNewNode<UReplicationGraphNode_Domain>();
-	GridNode = CreateNewDomainNode<UReplicationGraphNode_GridSpatialization2D>((uint8)EWorldDomain::WD_ISOLATED);
+	DomainNode[(uint8)EWorldDomain::WD_ISOLATED]->SetDomain((uint8)EWorldDomain::WD_ISOLATED);
+	RouterNode = DomainNode[(uint8)EWorldDomain::WD_ISOLATED]->CreateRouterNode<UReplicationGraphNode_WorldRouter>();
+	GridNode = RouterNode->CreateRoutedNodeTemplate<UReplicationGraphNode_GridSpatialization2D>();
 	GridNode->CellSize = 10000.f;
 	GridNode->SpatialBias = FVector2D(-WORLD_MAX, -WORLD_MAX);
 	AddGlobalGraphNode(DomainNode[(uint8)EWorldDomain::WD_ISOLATED]);
