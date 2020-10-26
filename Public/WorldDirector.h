@@ -12,6 +12,9 @@
 DECLARE_LOG_CATEGORY_EXTERN(LogWorldDirector, Log, All);
 
 enum class EWorldDomain : uint8;
+class URelatedWorld;
+
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FOnMoveActorToWorld, AActor*, Actor, URelatedWorld*, OldWorld, URelatedWorld*, NewWorld);
 
 UCLASS(BlueprintType)
 class RELATEDWORLD_API UWorldDirector : public UObject
@@ -113,6 +116,8 @@ public:
 	 */
 	UFUNCTION(BlueprintCallable, Category = "WorldDirector")
 		bool MoveActorToWorld(URelatedWorld* World, AActor* InActor, bool bTranslateLocation);
+
+	FOnMoveActorToWorld OnMoveActorToWorld;
 
 private:
 	TMap<FName, URelatedWorld*> Worlds;

@@ -74,6 +74,24 @@ void UReplicationGraphNode_Domain::NotifyAddNetworkActor(const FNewReplicatedAct
 
 bool UReplicationGraphNode_Domain::NotifyRemoveNetworkActor(const FNewReplicatedActorInfo& Actor, bool bWarnIfNotFound)
 {
+	bool bResult = false;
+
+	for (UReplicationGraphNode* ChildNode : AllChildNodes)
+	{
+		if (UReplicationGraphNode_GlobalGridSpatialization2D* ggs2DNode = Cast<UReplicationGraphNode_GlobalGridSpatialization2D>(ChildNode))
+		{
+			ggs2DNode->RemoveActor_Dormancy(Actor);
+		}
+		else if (UReplicationGraphNode_GridSpatialization2D* gs2DNode = Cast<UReplicationGraphNode_GridSpatialization2D>(ChildNode))
+		{
+			gs2DNode->RemoveActor_Dormancy(Actor);
+		}
+		else
+		{
+			ChildNode->NotifyRemoveNetworkActor(Actor, bWarnIfNotFound);
+		}
+	}
+
 	return true;
 }
 
@@ -125,6 +143,24 @@ void UReplicationGraphNode_WorldRouter::NotifyAddNetworkActor(const FNewReplicat
 
 bool UReplicationGraphNode_WorldRouter::NotifyRemoveNetworkActor(const FNewReplicatedActorInfo& Actor, bool bWarnIfNotFound)
 {
+	bool bResult = false;
+
+	for (UReplicationGraphNode* ChildNode : AllChildNodes)
+	{
+		if (UReplicationGraphNode_GlobalGridSpatialization2D* ggs2DNode = Cast<UReplicationGraphNode_GlobalGridSpatialization2D>(ChildNode))
+		{
+			ggs2DNode->RemoveActor_Dormancy(Actor);
+		}
+		else if (UReplicationGraphNode_GridSpatialization2D* gs2DNode = Cast<UReplicationGraphNode_GridSpatialization2D>(ChildNode))
+		{
+			gs2DNode->RemoveActor_Dormancy(Actor);
+		}
+		else
+		{
+			ChildNode->NotifyRemoveNetworkActor(Actor, bWarnIfNotFound);
+		}
+	}
+
 	return true;
 }
 
@@ -224,6 +260,8 @@ void URwReplicationGraphBase::InitGlobalActorClassSettings()
 
 		GlobalActorReplicationInfoMap.SetClassInfo(Class, ClassInfo);
 	}
+
+	UWorldDirector::Get()->OnMoveActorToWorld.AddDynamic(this, &URwReplicationGraphBase::OnMoveActorToWorld);
 }
 
 void URwReplicationGraphBase::InitGlobalGraphNodes()
@@ -308,6 +346,16 @@ void URwReplicationGraphBase::RouteAddNetworkActorToNodes(const FNewReplicatedAc
 	}
 }
 
+void URwReplicationGraphBase::OnMoveActorToWorld(AActor* InActor, URelatedWorld* OldWorld, URelatedWorld* NewWorld)
+{
+	uint8 OldDomain = OldWorld ? (uint8)OldWorld->GetWorldDomain() : 0;
+	uint8 NewDomain = NewWorld ? (uint8)NewWorld->GetWorldDomain() : 0;
+
+	DomainNode[OldDomain]->NotifyRemoveNetworkActor(FNewReplicatedActorInfo(InActor), false);
+
+	WorldChangePendingActors.Add(InActor);
+}
+
 int32 URwReplicationGraphBase::ServerReplicateActors(float DeltaSeconds)
 {
 	for (int32 i = ActorsWithoutConnection.Num() - 1; i >= 0; --i)
@@ -333,6 +381,17 @@ int32 URwReplicationGraphBase::ServerReplicateActors(float DeltaSeconds)
 		if (bRemove == true)
 		{
 			ActorsWithoutConnection.RemoveAt(i, 1, false);
+		}
+	}
+
+	for (int32 i = WorldChangePendingActors.Num() - 1; i >= 0; --i)
+	{
+		if (AActor* Actor = WorldChangePendingActors[i])
+		{
+			URelatedWorld* rWorld = UWorldDirector::Get()->GetRelatedWorldFromActor(Actor);
+			uint8 Domain = rWorld ? (uint8)rWorld->GetWorldDomain() : 0;
+			DomainNode[Domain]->NotifyAddNetworkActor(FNewReplicatedActorInfo(Actor));
+			WorldChangePendingActors.RemoveAt(i, 1, false);
 		}
 	}
 

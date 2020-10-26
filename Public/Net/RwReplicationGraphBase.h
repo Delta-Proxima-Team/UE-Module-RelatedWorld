@@ -92,6 +92,9 @@ public:
 
 	virtual int32 ServerReplicateActors(float DeltaSeconds) override;
 
+	UFUNCTION()
+		virtual void OnMoveActorToWorld(AActor* InActor, URelatedWorld* OldWorld, URelatedWorld* NewWorld);
+
 protected:
 	virtual void InitGlobalActorClassSettings() override;
 	virtual void InitGlobalGraphNodes() override;
@@ -102,6 +105,9 @@ private:
 		UReplicationGraphNode_ActorList* AlwaysRelevantNode;
 	UPROPERTY()
 		TArray<AActor*> ActorsWithoutConnection;
+	UPROPERTY()
+		TArray<AActor*> WorldChangePendingActors;
+
 	UPROPERTY()
 		TMap<UNetConnection*, UReplicationGraphNode_AlwaysRelevant_ForConnection*> ConnectionRelevantNode;
 	UPROPERTY()

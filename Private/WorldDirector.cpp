@@ -395,6 +395,8 @@ bool UWorldDirector::MoveActorToWorld(URelatedWorld* World, AActor* InActor, boo
 				LocationComponent->RegisterComponent();
 			}
 		}
+
+		OnMoveActorToWorld.Broadcast(InActor, OldRWorld, World);
 	}
 
 	return bMoved;
