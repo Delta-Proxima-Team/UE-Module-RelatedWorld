@@ -33,6 +33,7 @@ public:
 	FORCEINLINE UReplicationGraphNode* GetRouterNode() const { return RouterNode; };
 	virtual void NotifyAddNetworkActor(const FNewReplicatedActorInfo& Actor) override;
 	virtual bool NotifyRemoveNetworkActor(const FNewReplicatedActorInfo& Actor, bool bWarnIfNotFound = true) override;
+	virtual void GatherActorListsForConnection(const FConnectionGatherActorListParameters& Params) override;
 
 private:
 	uint8 NodeDomain;

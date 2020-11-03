@@ -95,6 +95,18 @@ bool UReplicationGraphNode_Domain::NotifyRemoveNetworkActor(const FNewReplicated
 	return true;
 }
 
+void UReplicationGraphNode_Domain::GatherActorListsForConnection(const FConnectionGatherActorListParameters& Params)
+{
+	URelatedWorld* rWorld = UWorldDirector::Get()->GetRelatedWorldFromActor(Params.Viewer.ViewTarget);
+
+	if (rWorld->GetWorldDomain() == EWorldDomain::WD_ISOLATED && NodeDomain != (uint8)EWorldDomain::WD_ISOLATED)
+	{
+		return;
+	}
+
+	Super::GatherActorListsForConnection(Params);
+}
+
 void UReplicationGraphNode_WorldRouter::NotifyAddNetworkActor(const FNewReplicatedActorInfo& ActorInfo)
 {
 	URelatedWorld* rWorld = UWorldDirector::Get()->GetRelatedWorldFromActor(ActorInfo.Actor);
@@ -137,6 +149,7 @@ void UReplicationGraphNode_WorldRouter::NotifyAddNetworkActor(const FNewReplicat
 			}
 
 			RouterRule.Add(newRule);
+			NotifyAddNetworkActor(ActorInfo);
 		}
 	}
 }
