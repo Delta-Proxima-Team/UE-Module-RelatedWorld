@@ -99,9 +99,16 @@ void UReplicationGraphNode_Domain::GatherActorListsForConnection(const FConnecti
 {
 	URelatedWorld* rWorld = UWorldDirector::Get()->GetRelatedWorldFromActor(Params.Viewer.ViewTarget);
 
-	if (rWorld)
+	if (rWorld != nullptr)
 	{
 		if (rWorld->GetWorldDomain() == EWorldDomain::WD_ISOLATED && NodeDomain != (uint8)EWorldDomain::WD_ISOLATED)
+		{
+			return;
+		}
+	}
+	else
+	{
+		if (NodeDomain != (uint8)EWorldDomain::WD_PUBLIC)
 		{
 			return;
 		}
