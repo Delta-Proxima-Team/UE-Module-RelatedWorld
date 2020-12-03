@@ -97,20 +97,24 @@ bool UReplicationGraphNode_Domain::NotifyRemoveNetworkActor(const FNewReplicated
 
 void UReplicationGraphNode_Domain::GatherActorListsForConnection(const FConnectionGatherActorListParameters& Params)
 {
-	URelatedWorld* rWorld = UWorldDirector::Get()->GetRelatedWorldFromActor(Params.Viewer.ViewTarget);
+	for (int32 i = 0; i < Params.Viewers.Num(); ++i)
+	{
+		FNetViewer* Viewer = (FNetViewer*)&Params.Viewers[i];
+		URelatedWorld* rWorld = UWorldDirector::Get()->GetRelatedWorldFromActor(Viewer->ViewTarget);
 
-	if (rWorld != nullptr)
-	{
-		if (rWorld->GetWorldDomain() == EWorldDomain::WD_ISOLATED && NodeDomain != (uint8)EWorldDomain::WD_ISOLATED)
+		if (rWorld != nullptr)
 		{
-			return;
+			if (rWorld->GetWorldDomain() == EWorldDomain::WD_ISOLATED && NodeDomain != (uint8)EWorldDomain::WD_ISOLATED)
+			{
+				return;
+			}
 		}
-	}
-	else
-	{
-		if (NodeDomain != (uint8)EWorldDomain::WD_PUBLIC)
+		else
 		{
-			return;
+			if (NodeDomain != (uint8)EWorldDomain::WD_PUBLIC)
+			{
+				return;
+			}
 		}
 	}
 
@@ -189,17 +193,21 @@ bool UReplicationGraphNode_WorldRouter::NotifyRemoveNetworkActor(const FNewRepli
 
 void UReplicationGraphNode_WorldRouter::GatherActorListsForConnection(const FConnectionGatherActorListParameters& Params)
 {
-	URelatedWorld* rWorld = UWorldDirector::Get()->GetRelatedWorldFromActor(Params.Viewer.ViewTarget);
-
-	if (rWorld != nullptr)
+	for (int32 i = 0; i < Params.Viewers.Num(); ++i)
 	{
-		for (const FRouterRule Rule : RouterRule)
+		FNetViewer* Viewer = (FNetViewer*)&Params.Viewers[i];
+		URelatedWorld* rWorld = UWorldDirector::Get()->GetRelatedWorldFromActor(Viewer->ViewTarget);
+
+		if (rWorld != nullptr)
 		{
-			if (Rule.RelatedWorld == rWorld)
+			for (const FRouterRule Rule : RouterRule)
 			{
-				for (UReplicationGraphNode* Node : Rule.Node)
+				if (Rule.RelatedWorld == rWorld)
 				{
-					Node->GatherActorListsForConnection(Params);
+					for (UReplicationGraphNode* Node : Rule.Node)
+					{
+						Node->GatherActorListsForConnection(Params);
+					}
 				}
 			}
 		}
@@ -233,14 +241,18 @@ void UReplicationGraphNode_GlobalGridSpatialization2D::NotifyAddNetworkActor(con
 
 void UReplicationGraphNode_GlobalGridSpatialization2D::GatherActorListsForConnection(const FConnectionGatherActorListParameters& Params)
 {
-	AActor* Viewer = Params.Viewer.ViewTarget;
-
-	URelatedWorld* rWorld = UWorldDirector::Get()->GetRelatedWorldFromActor(Viewer);
-
-	if (rWorld != nullptr)
+	for (int32 i = 0; i < Params.Viewers.Num(); ++i)
 	{
-		FIntVector Translation = rWorld->GetWorldTranslation();
-		Params.Viewer.ViewLocation = URelatedWorldUtils::CONVERT_RelToWorld(Translation, Params.Viewer.ViewLocation);
+		FNetViewer* Viewer = (FNetViewer*)&Params.Viewers[i];
+		AActor* aViewer = Viewer->ViewTarget;
+
+		URelatedWorld* rWorld = UWorldDirector::Get()->GetRelatedWorldFromActor(aViewer);
+
+		if (rWorld != nullptr)
+		{
+			FIntVector Translation = rWorld->GetWorldTranslation();
+			Viewer->ViewLocation = URelatedWorldUtils::CONVERT_RelToWorld(Translation, Viewer->ViewLocation);
+		}
 	}
 
 	Super::GatherActorListsForConnection(Params);

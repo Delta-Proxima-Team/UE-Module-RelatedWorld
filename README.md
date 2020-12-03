@@ -35,7 +35,11 @@ ReplicationDriverClassName="/Script/RelatedWorld.RwReplicationGraphBase"
 
 ## Notes
 - I strongly not recommend use built in replication graph, due it was added only for experimental purpose.
-- Unreal Engine 4.26 are not supported for now.
+- Unreal Engine 4.26 are not fully supported for now.
+
+## 4.26 note
+For working in network mode you need add this node to the Begin Play event
+![img](https://github.com/Delta-Proxima-Team/UE4-Module-RelatedWorld/blob/develop/4.26-compobility.png?raw=true)
 
 ## Simple Usage
 https://cdn.discordapp.com/attachments/644401603088089119/727580647643807855/2020-06-30_20-44-15.png

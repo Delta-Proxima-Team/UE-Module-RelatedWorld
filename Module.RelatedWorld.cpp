@@ -7,6 +7,8 @@
 
 #include "GameFramework/Character.h"
 
+#define SUPPORT_DEPRECATED_CHARACTER_MOVEMENT_PRCS 1
+
 DECLARE_UFUNCTION_HOOK(AActor, OnRep_ReplicatedMovement);
 
 DECLARE_UFUNCTION_HOOK(ACharacter, ClientAdjustPosition);

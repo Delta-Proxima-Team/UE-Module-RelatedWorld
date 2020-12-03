@@ -10,6 +10,7 @@
 #include "Engine/WorldComposition.h"
 #include "Kismet/GameplayStatics.h"
 #include "Components/SceneCaptureComponent.h"
+#include "GameFramework/Character.h"
 
 FVector URelatedWorldUtils::ActorLocationToWorldLocation(AActor* InActor)
 {
@@ -225,7 +226,7 @@ void URelatedWorld::Tick(float DeltaSeconds)
 			// Run pre-actor tick delegates that want clamped/dilated time
 			FWorldDelegates::OnWorldPreActorTick.Broadcast(World, TickType, DeltaSeconds);
 		}
-
+#if ENGINE_MINOR_VERSION < 26 
 		// Tick level sequence actors first
 		for (int32 i = World->LevelSequenceActors.Num() - 1; i >= 0; --i)
 		{
@@ -234,6 +235,9 @@ void URelatedWorld::Tick(float DeltaSeconds)
 				World->LevelSequenceActors[i]->Tick(DeltaSeconds);
 			}
 		}
+#else
+		//World->MovieSceneSequenceTick.Broadcast(DeltaSeconds);
+#endif
 	}
 
 	const TArray<FLevelCollection>& LevelCollections = World->GetLevelCollections();
