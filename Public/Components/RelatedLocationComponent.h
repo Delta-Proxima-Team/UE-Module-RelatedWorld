@@ -4,6 +4,9 @@
 
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
+#if ENGINE_MINOR_VERSION == 26
+#include "GameFramework/CharacterMovementReplication.h"
+#endif
 #include "RelatedLocationComponent.generated.h"
 
 class UWorldDirector;
@@ -31,7 +34,11 @@ public:
 /** BEGIN HOOKS **/
 
 	void AActor_OnRep_ReplicatedMovement(const FIntVector& WorldOrigin);
+
 	void ACharacter_ClientAdjustPosition(const FIntVector& WorldOrigin, float TimeStamp, FVector NewLoc, FVector NewVel, UPrimitiveComponent* NewBase, FName NewBaseBoneName, bool bHasBase, bool bBaseRelativePosition, uint8 ServerMovementMode);
+#if ENGINE_MINOR_VERSION == 26
+	void ACharacter_ClientMoveResponsePacked(const FIntVector& WorldOrigin, const FCharacterMoveResponsePackedBits& PackedBits);
+#endif
 	void APlayerController_ServerUpdateCamera(FVector_NetQuantize CamLoc, int32 CamPitchAndYaw);
 
 	UFUNCTION(Server, UnReliable, WithValidation)
@@ -66,4 +73,9 @@ private:
 
 	UPROPERTY(ReplicatedUsing=OnRep_WorldTranslation)
 		FIntVector WorldTranslation;
+
+#if ENGINE_MINOR_VERSION == 26
+	FNetBitReader MoveResponseBitReader;
+	FCharacterMoveResponseDataContainer MoveResponseDataContainer;
+#endif
 };

@@ -7,11 +7,17 @@
 
 #include "GameFramework/Character.h"
 
-#define SUPPORT_DEPRECATED_CHARACTER_MOVEMENT_PRCS 1
+#if ENGINE_MINOR_VERSION == 26
+//Suppres warning message
+#define SUPPORT_DEPRECATED_CHARACTER_MOVEMENT_RPCS = 1
+#endif
 
 DECLARE_UFUNCTION_HOOK(AActor, OnRep_ReplicatedMovement);
 
 DECLARE_UFUNCTION_HOOK(ACharacter, ClientAdjustPosition);
+#if ENGINE_MINOR_VERSION == 26
+DECLARE_UFUNCTION_HOOK(ACharacter, ClientMoveResponsePacked);
+#endif
 
 DECLARE_UFUNCTION_HOOK(APlayerController, ServerUpdateCamera);
 
@@ -27,6 +33,9 @@ public:
 		ENABLE_UFUNCTION_HOOK(AActor, OnRep_ReplicatedMovement);
 
 		ENABLE_UFUNCTION_HOOK(ACharacter, ClientAdjustPosition);
+#if ENGINE_MINOR_VERSION == 26
+		ENABLE_UFUNCTION_HOOK(ACharacter, ClientMoveResponsePacked);
+#endif
 
 		FLAGS_UFUNCTION_HOOK(APlayerController, ServerUpdateCamera, FUNC_Static);
 		ENABLE_UFUNCTION_HOOK(APlayerController, ServerUpdateCamera);
