@@ -7,11 +7,6 @@
 
 #include "GameFramework/Character.h"
 
-#if ENGINE_MINOR_VERSION == 26
-//Suppres warning message
-#define SUPPORT_DEPRECATED_CHARACTER_MOVEMENT_RPCS = 1
-#endif
-
 DECLARE_UFUNCTION_HOOK(AActor, OnRep_ReplicatedMovement);
 
 DECLARE_UFUNCTION_HOOK(ACharacter, ClientAdjustPosition);
@@ -52,6 +47,12 @@ public:
 	}
 
 private:
+	DEFINE_UFUNCTION_HOOK(AActor, OnRep_ReplicatedMovement);
+	DEFINE_UFUNCTION_HOOK(ACharacter, ClientAdjustPosition);
+#if ENGINE_MINOR_VERSION == 26
+	DEFINE_UFUNCTION_HOOK(ACharacter, ClientMoveResponsePacked);
+#endif
+	DEFINE_UFUNCTION_HOOK(APlayerController, ServerUpdateCamera);
 	UWorldDirector* WorldDirector;
 };
 

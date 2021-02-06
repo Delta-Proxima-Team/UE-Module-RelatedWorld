@@ -27,8 +27,9 @@ struct FHOOK_##Class##_##Func \
 		HookFlags = Function->FunctionFlags; \
 		RedirectPtr = &HOOK_##Class##_##Func##_Implementation; \
 	} \
-}; \
-FHOOK_##Class##_##Func Hook_##Class##_##Func##_Struct
+}
+
+#define DEFINE_UFUNCTION_HOOK(Class, Func) FHOOK_##Class##_##Func Hook_##Class##_##Func##_Struct
 
 #define IMPLEMENT_UFUNCTION_HOOK(Class, Func) void HOOK_##Class##_##Func##_Implementation(UObject* Context, FFrame& Stack, RESULT_DECL) \
 { \

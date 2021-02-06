@@ -12,6 +12,8 @@ public class RelatedWorld : ModuleRules
 		ShadowVariableWarningLevel = WarningLevel.Error;
 		PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
 
+		PublicDefinitions.Add("SUPPORT_DEPRECATED_CHARACTER_MOVEMENT_RPCS = 1");
+
 		PublicDependencyModuleNames.AddRange(new string[]
 		{
 			"Core",
