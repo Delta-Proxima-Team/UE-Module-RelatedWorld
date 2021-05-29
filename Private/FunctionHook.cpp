@@ -50,59 +50,6 @@ void URelatedLocationComponent::AActor_OnRep_ReplicatedMovement(const FIntVector
 }
 
 
-IMPLEMENT_UFUNCTION_HOOK(ACharacter, ClientAdjustPosition)
-{
-	P_GET_PROPERTY(FFloatProperty, TimeStamp);
-	P_GET_STRUCT(FVector, NewLoc);
-	P_GET_STRUCT(FVector, NewVel);
-	P_GET_OBJECT(UPrimitiveComponent, NewBase);
-	P_GET_PROPERTY(FNameProperty, NewBaseBoneName);
-	P_GET_PROPERTY(FBoolProperty, bHasBase);
-	P_GET_PROPERTY(FBoolProperty, bBaseRelativePosition);
-	P_GET_PROPERTY(FByteProperty, ServerMovementMode);
-	P_FINISH;
-
-	P_NATIVE_BEGIN;
-	{
-		HOOK_COMPONENT(URelatedLocationComponent);
-
-		FIntVector STORE_OriginLocation;
-
-		if (p_comp != nullptr)
-		{
-			STORE_OriginLocation = p_this->GetWorld()->OriginLocation;
-			p_this->GetWorld()->OriginLocation = FIntVector::ZeroValue;
-			p_comp->ACharacter_ClientAdjustPosition(STORE_OriginLocation, TimeStamp, NewLoc, NewVel, NewBase, NewBaseBoneName, bHasBase, bBaseRelativePosition, ServerMovementMode);
-			p_this->GetWorld()->OriginLocation = STORE_OriginLocation;
-		}
-		else
-		{
-			p_this->ClientAdjustPosition_Implementation(TimeStamp, NewLoc, NewVel, NewBase, NewBaseBoneName, bHasBase, bBaseRelativePosition, ServerMovementMode);
-		}
-	}
-	P_NATIVE_END;
-
-}
-END_UFUNCTION_HOOK
-
-void URelatedLocationComponent::ACharacter_ClientAdjustPosition(
-	const FIntVector& WorldOrigin,
-	float TimeStamp,
-	FVector NewLoc,
-	FVector NewVel,
-	UPrimitiveComponent* NewBase,
-	FName NewBaseBoneName,
-	bool bHasBase,
-	bool bBaseRelativePosition,
-	uint8 ServerMovementMode)
-{
-	FIntVector Rebase = WorldTranslation - WorldOrigin;
-	FVector Loc = URelatedWorldUtils::CONVERT_RelToWorld(Rebase, NewLoc);
-
-	CastChecked<ACharacter>(GetOwner())->ClientAdjustPosition_Implementation(TimeStamp, Loc, NewVel, NewBase, NewBaseBoneName, bHasBase, bBaseRelativePosition, ServerMovementMode);
-}
-
-#if ENGINE_MINOR_VERSION == 26
 IMPLEMENT_UFUNCTION_HOOK(ACharacter, ClientMoveResponsePacked)
 {
 	P_GET_STRUCT(FCharacterMoveResponsePackedBits, PackedBits);
@@ -167,7 +114,6 @@ void URelatedLocationComponent::ACharacter_ClientMoveResponsePacked(const FIntVe
 	MovementComp->ClientHandleMoveResponse(MoveResponseDataContainer);
 }
 
-#endif
 
 IMPLEMENT_UFUNCTION_HOOK(APlayerController, ServerUpdateCamera)
 {

@@ -226,18 +226,6 @@ void URelatedWorld::Tick(float DeltaSeconds)
 			// Run pre-actor tick delegates that want clamped/dilated time
 			FWorldDelegates::OnWorldPreActorTick.Broadcast(World, TickType, DeltaSeconds);
 		}
-#if ENGINE_MINOR_VERSION < 26 
-		// Tick level sequence actors first
-		for (int32 i = World->LevelSequenceActors.Num() - 1; i >= 0; --i)
-		{
-			if (World->LevelSequenceActors[i] != nullptr)
-			{
-				World->LevelSequenceActors[i]->Tick(DeltaSeconds);
-			}
-		}
-#else
-		//World->MovieSceneSequenceTick.Broadcast(DeltaSeconds);
-#endif
 	}
 
 	const TArray<FLevelCollection>& LevelCollections = World->GetLevelCollections();
@@ -422,6 +410,8 @@ AActor* URelatedWorld::SpawnActor(UClass* Class, const FTransform& SpawnTransfor
 		URelatedLocationComponent* LocationComponent = NewObject<URelatedLocationComponent>(SpawnedActor, TEXT("LocationComponent"), RF_Transient);
 		LocationComponent->RegisterComponent();
 	}
+
+	UWorld* CheckWorld = SpawnedActor->GetWorld();
 
 	return SpawnedActor;
 }

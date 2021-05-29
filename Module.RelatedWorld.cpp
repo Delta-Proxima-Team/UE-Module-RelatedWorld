@@ -8,11 +8,7 @@
 #include "GameFramework/Character.h"
 
 DECLARE_UFUNCTION_HOOK(AActor, OnRep_ReplicatedMovement);
-
-DECLARE_UFUNCTION_HOOK(ACharacter, ClientAdjustPosition);
-#if ENGINE_MINOR_VERSION == 26
 DECLARE_UFUNCTION_HOOK(ACharacter, ClientMoveResponsePacked);
-#endif
 
 DECLARE_UFUNCTION_HOOK(APlayerController, ServerUpdateCamera);
 
@@ -26,11 +22,7 @@ public:
 		WorldDirector->AddToRoot();
 
 		ENABLE_UFUNCTION_HOOK(AActor, OnRep_ReplicatedMovement);
-
-		ENABLE_UFUNCTION_HOOK(ACharacter, ClientAdjustPosition);
-#if ENGINE_MINOR_VERSION == 26
 		ENABLE_UFUNCTION_HOOK(ACharacter, ClientMoveResponsePacked);
-#endif
 
 		FLAGS_UFUNCTION_HOOK(APlayerController, ServerUpdateCamera, FUNC_Static);
 		ENABLE_UFUNCTION_HOOK(APlayerController, ServerUpdateCamera);
@@ -48,10 +40,8 @@ public:
 
 private:
 	DEFINE_UFUNCTION_HOOK(AActor, OnRep_ReplicatedMovement);
-	DEFINE_UFUNCTION_HOOK(ACharacter, ClientAdjustPosition);
-#if ENGINE_MINOR_VERSION == 26
 	DEFINE_UFUNCTION_HOOK(ACharacter, ClientMoveResponsePacked);
-#endif
+
 	DEFINE_UFUNCTION_HOOK(APlayerController, ServerUpdateCamera);
 	UWorldDirector* WorldDirector;
 };

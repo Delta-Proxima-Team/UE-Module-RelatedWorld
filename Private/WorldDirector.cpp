@@ -104,7 +104,7 @@ URelatedWorld* UWorldDirector::LoadRelatedWorld(UObject* WorldContextObject, FNa
 		const FName PIEPackageFName = FName(*PIEPackageName);
 		UWorld::WorldTypePreLoadMap.FindOrAdd(PIEPackageFName) = Context.WorldType;
 		FSoftObjectPath::AddPIEPackageName(PIEPackageFName);
-		UPackage* NewPackage = CreatePackage(nullptr, *PIEPackageName);
+		UPackage* NewPackage = CreatePackage(*PIEPackageName);
 		NewPackage->SetPackageFlags(PKG_PlayInEditor);
 		WorldPackage = LoadPackage(NewPackage, *MapName, LOAD_PackageForPIE);
 		UWorld::WorldTypePreLoadMap.Remove(PIEPackageFName);
