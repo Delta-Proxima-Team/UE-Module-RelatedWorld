@@ -8,11 +8,7 @@ public class RelatedWorld : ModuleRules
 {
 	public RelatedWorld(ReadOnlyTargetRules Target) : base(Target)
 	{
-		bLegacyPublicIncludePaths = false;
-		ShadowVariableWarningLevel = WarningLevel.Error;
 		PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
-
-		PublicDefinitions.Add("SUPPORT_DEPRECATED_CHARACTER_MOVEMENT_RPCS = 1");
 
 		PublicDependencyModuleNames.AddRange(new string[]
 		{
