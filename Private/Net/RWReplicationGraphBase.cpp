@@ -80,7 +80,7 @@ bool UReplicationGraphNode_Domain::NotifyRemoveNetworkActor(const FNewReplicated
 	{
 		if (UReplicationGraphNode_GlobalGridSpatialization2D* ggs2DNode = Cast<UReplicationGraphNode_GlobalGridSpatialization2D>(ChildNode))
 		{
-			ggs2DNode->RemoveActor_Dormancy(Actor);
+			ggs2DNode->NotifyRemoveNetworkActor(Actor);
 		}
 		else if (UReplicationGraphNode_GridSpatialization2D* gs2DNode = Cast<UReplicationGraphNode_GridSpatialization2D>(ChildNode))
 		{
@@ -176,7 +176,7 @@ bool UReplicationGraphNode_WorldRouter::NotifyRemoveNetworkActor(const FNewRepli
 	{
 		if (UReplicationGraphNode_GlobalGridSpatialization2D* ggs2DNode = Cast<UReplicationGraphNode_GlobalGridSpatialization2D>(ChildNode))
 		{
-			ggs2DNode->RemoveActor_Dormancy(Actor);
+			ggs2DNode->NotifyRemoveNetworkActor(Actor);
 		}
 		else if (UReplicationGraphNode_GridSpatialization2D* gs2DNode = Cast<UReplicationGraphNode_GridSpatialization2D>(ChildNode))
 		{
@@ -237,6 +237,13 @@ void UReplicationGraphNode_GlobalGridSpatialization2D::NotifyAddNetworkActor(con
 {
 	AddActor_Dormancy(ActorInfo, GraphGlobals->GlobalActorReplicationInfoMap->Get(ActorInfo.Actor));
 	DynamicSpatializedActors.Emplace(ActorInfo.Actor);
+}
+
+bool UReplicationGraphNode_GlobalGridSpatialization2D::NotifyRemoveNetworkActor(const FNewReplicatedActorInfo& ActorInfo, bool bWarnIfNotFound)
+{
+	RemoveActor_Dormancy(ActorInfo);
+	DynamicSpatializedActors.Remove(ActorInfo.Actor);
+	return true;
 }
 
 void UReplicationGraphNode_GlobalGridSpatialization2D::GatherActorListsForConnection(const FConnectionGatherActorListParameters& Params)
