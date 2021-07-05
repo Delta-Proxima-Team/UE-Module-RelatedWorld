@@ -74,6 +74,7 @@ class RELATEDWORLD_API UReplicationGraphNode_GlobalGridSpatialization2D : public
 public:
 	UReplicationGraphNode_GlobalGridSpatialization2D() { bRequiresPrepareForReplicationCall = true; };
 	virtual void NotifyAddNetworkActor(const FNewReplicatedActorInfo& Actor) override;
+	virtual bool NotifyRemoveNetworkActor(const FNewReplicatedActorInfo& Actor, bool bWarnIfNotFound = true) override;
 	virtual void PrepareForReplication() override;
 	virtual void GatherActorListsForConnection(const FConnectionGatherActorListParameters& Params) override;
 
