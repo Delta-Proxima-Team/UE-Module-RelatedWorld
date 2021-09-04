@@ -10,7 +10,7 @@
 DECLARE_UFUNCTION_HOOK(AActor, OnRep_ReplicatedMovement);
 
 DECLARE_UFUNCTION_HOOK(ACharacter, ClientAdjustPosition);
-#if ENGINE_MINOR_VERSION == 26
+#if ENGINE_MINOR_VERSION >= 26
 DECLARE_UFUNCTION_HOOK(ACharacter, ClientMoveResponsePacked);
 #endif
 
@@ -28,7 +28,7 @@ public:
 		ENABLE_UFUNCTION_HOOK(AActor, OnRep_ReplicatedMovement);
 
 		ENABLE_UFUNCTION_HOOK(ACharacter, ClientAdjustPosition);
-#if ENGINE_MINOR_VERSION == 26
+#if ENGINE_MINOR_VERSION >= 26
 		ENABLE_UFUNCTION_HOOK(ACharacter, ClientMoveResponsePacked);
 #endif
 
@@ -49,7 +49,7 @@ public:
 private:
 	DEFINE_UFUNCTION_HOOK(AActor, OnRep_ReplicatedMovement);
 	DEFINE_UFUNCTION_HOOK(ACharacter, ClientAdjustPosition);
-#if ENGINE_MINOR_VERSION == 26
+#if ENGINE_MINOR_VERSION >= 26
 	DEFINE_UFUNCTION_HOOK(ACharacter, ClientMoveResponsePacked);
 #endif
 	DEFINE_UFUNCTION_HOOK(APlayerController, ServerUpdateCamera);

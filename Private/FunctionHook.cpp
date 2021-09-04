@@ -102,7 +102,7 @@ void URelatedLocationComponent::ACharacter_ClientAdjustPosition(
 	CastChecked<ACharacter>(GetOwner())->ClientAdjustPosition_Implementation(TimeStamp, Loc, NewVel, NewBase, NewBaseBoneName, bHasBase, bBaseRelativePosition, ServerMovementMode);
 }
 
-#if ENGINE_MINOR_VERSION == 26
+#if ENGINE_MINOR_VERSION >= 26
 IMPLEMENT_UFUNCTION_HOOK(ACharacter, ClientMoveResponsePacked)
 {
 	P_GET_STRUCT(FCharacterMoveResponsePackedBits, PackedBits);
