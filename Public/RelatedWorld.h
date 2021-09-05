@@ -123,6 +123,21 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "WorldDirector")
 		AActor* SpawnActor(UClass* Class, const FTransform& SpawnTransform, ESpawnActorCollisionHandlingMethod CollisionHandlingOverride, AActor* Owner);
 
+	template<typename ActorClass>
+	ActorClass* SpawnActor(UClass* Class, const FTransform& SpawnTransform, ESpawnActorCollisionHandlingMethod CollisionHandlingOverride, AActor* Owner)
+	{
+		return Cast<ActorClass>(SpawnActor(Class, SpawnTransform, CollisionHandlingOverride, Owner));
+	}
+
+	template<typename ActorClass>
+	ActorClass* SpawnActor(UClass* Class, const FVector& SpawnLocation, ESpawnActorCollisionHandlingMethod CollisionHandlingOverride, AActor* Owner)
+	{
+		FTransform SpawnTransform = FTransform();
+		SpawnTransform.SetLocation(SpawnLocation);
+
+		return Cast<ActorClass>(SpawnActor(Class, SpawnTransform, CollisionHandlingOverride, Owner));
+	}
+
 	/** Translate world origin to specified position  */
 	UFUNCTION(BlueprintCallable, Category = "WorldDirector")
 		void SetWorldOrigin(FIntVector NewOrigin);

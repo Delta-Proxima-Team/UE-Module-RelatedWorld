@@ -87,6 +87,18 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "WorldDirector")
 		AActor* SpawnActor(URelatedWorld* TargetWorld, UClass* Class, const FTransform& SpawnTransform, ESpawnActorCollisionHandlingMethod CollisionHandlingOverride, AActor* Owner);
 
+	template<typename ActorClass>
+	ActorClass* SpawnActor(URelatedWorld* TargetWorld, UClass* Class, const FTransform& SpawnTransform, ESpawnActorCollisionHandlingMethod CollisionHandlingOverride, AActor* Owner)
+	{
+		return TargetWorld->SpawnActor<ActorClass>(Class, SpawnTransform, CollisionHandlingOverride, Owner);
+	}
+
+	template<typename ActorClass>
+	ActorClass* SpawnActor(URelatedWorld* TargetWorld, UClass* Class, const FVector& SpawnLocation, ESpawnActorCollisionHandlingMethod CollisionHandlingOverride, AActor* Owner)
+	{
+		return TargetWorld->SpawnActor<ActorClass>(Class, SpawnLocation, CollisionHandlingOverride, Owner);
+	}
+
 	/**
 	 * Returns the related world if the actor is on it or NULL if not
 	 * @return	RelatedWorld	RelatedWorld object of NULL
